@@ -1,0 +1,15 @@
+{
+  "network": "mantle-sepolia",
+  "chainId": 5003,
+  "deployer": "0xd5881AA749eEFd3Cb08d10f051aC776d664d0663",
+  "contracts": {
+    "CredentialRegistry": "0x5d311f246ef87d24B045D961aA6da62a758514f7",
+    "ZKVerifier": "0x96f43E12280676866bBe13E0120Bb5892fCbfE0b",
+    "ProtocolAccessControl": "0xF599F186aC6fD2a9bECd9eDEE91fd58D3Dc3dB0A"
+  },
+  "transactions": {
+    "CredentialRegistry": "0xc3116fd48855631e0bc5f66a1b5c4511b7b4f0585e3328c7209832498a5d6517",
+    "ZKVerifier": "0x931480a69512e0fd8b022d16f531e8019775d3832918f93e4f16c34b704eea39",
+    "ProtocolAccessControl": "0x7c1e886fe55642a58ea01a1ca89fbcbe7d437869299f050792cc343086877ae9"
+  }
+}

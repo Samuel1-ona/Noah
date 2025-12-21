@@ -1,0 +1,33 @@
+# Foundry
+out/
+cache/
+broadcast/
+
+# Node
+node_modules/
+package-lock.json
+
+# Environment
+.env
+.env.local
+
+# Build artifacts
+build/
+*.zkey
+*.ptau
+*.r1cs
+*.wasm
+*.sym
+proof.json
+public.json
+verification_key.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

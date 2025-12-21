@@ -1,0 +1,43 @@
+{
+  "name": "zk-kyc-backend",
+  "version": "1.0.0",
+  "description": "Backend services for ZK-KYC protocol",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch src/index.js",
+    "start": "node src/index.js",
+    "gateway:dev": "node --watch src/gateway/server.js",
+    "issuer:dev": "node --watch src/issuer/server.js",
+    "user:dev": "node --watch src/user/server.js",
+    "protocol:dev": "node --watch src/protocol/server.js",
+    "proof:dev": "node --watch src/proof/server.js"
+  },
+  "keywords": [
+    "zk-kyc",
+    "blockchain",
+    "ethereum"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "ethers": "^6.16.0",
+    "express": "^4.22.1",
+    "express-validator": "^7.0.1",
+    "express-rate-limit": "^7.1.5",
+    "http-proxy-middleware": "^2.0.6",
+    "jsonwebtoken": "^9.0.3",
+    "pg": "^8.11.3",
+    "redis": "^4.6.12",
+    "sqlite3": "^5.1.7",
+    "winston": "^3.11.0",
+    "winston-daily-rotate-file": "^4.7.1",
+    "joi": "^17.11.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0"
+  }
+}

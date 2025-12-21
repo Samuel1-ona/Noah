@@ -1,0 +1,326 @@
+{
+	"info": {
+		"name": "ZK-KYC API",
+		"description": "ZK-KYC Backend API Collection",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:3000",
+			"type": "string"
+		},
+		{
+			"key": "protocol_address",
+			"value": "0x1f6E70a8F73c556E7722e2F82c0E83aAe31046c1",
+			"type": "string"
+		},
+		{
+			"key": "user_address",
+			"value": "0xd5881AA749eEFd3Cb08d10f051aC776d664d0663",
+			"type": "string"
+		},
+		{
+			"key": "credential_hash",
+			"value": "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "Gateway",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/health",
+							"host": ["{{base_url}}"],
+							"path": ["health"]
+						}
+					}
+				},
+				{
+					"name": "API v1 Health",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/health",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "health"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Issuer Service",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/issuer/health",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "issuer", "health"]
+						}
+					}
+				},
+				{
+					"name": "Register Credential",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"credentialHash\": \"{{credential_hash}}\",\n  \"userAddress\": \"{{user_address}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/issuer/credential/register",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "issuer", "credential", "register"]
+						},
+						"description": "Registers a credential hash on-chain. Returns transaction hash."
+					}
+				},
+				{
+					"name": "Revoke Credential",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"credentialHash\": \"{{credential_hash}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/issuer/credential/revoke",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "issuer", "credential", "revoke"]
+						},
+						"description": "Revokes a credential on-chain. Returns transaction hash."
+					}
+				},
+				{
+					"name": "Check Credential Validity",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/issuer/credential/check/{{credential_hash}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "issuer", "credential", "check", "{{credential_hash}}"]
+						},
+						"description": "Checks if credential is valid (exists and not revoked). Reads from CredentialRegistry contract."
+					}
+				}
+			]
+		},
+		{
+			"name": "User Service",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/user/health",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "user", "health"]
+						}
+					}
+				},
+				{
+					"name": "Get Protocol Requirements",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/user/protocol/{{protocol_address}}/requirements",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "user", "protocol", "{{protocol_address}}", "requirements"]
+						},
+						"description": "Gets protocol requirements from ProtocolAccessControl contract."
+					}
+				},
+				{
+					"name": "Check User Access",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/user/access/{{protocol_address}}/{{user_address}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "user", "access", "{{protocol_address}}", "{{user_address}}"]
+						},
+						"description": "Checks if user has access to protocol. Reads from ProtocolAccessControl contract."
+					}
+				}
+			]
+		},
+		{
+			"name": "Protocol Service",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/protocol/health",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "protocol", "health"]
+						}
+					}
+				},
+				{
+					"name": "Set Requirements",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"protocolAddress\": \"{{protocol_address}}\",\n  \"minAge\": 21,\n  \"allowedJurisdictions\": [1234567890, 1111111111],\n  \"requireAccredited\": true,\n  \"privateKey\": \"your_protocol_private_key_here\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/protocol/requirements/set",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "protocol", "requirements", "set"]
+						},
+						"description": "Sets protocol requirements on-chain. Returns transaction hash."
+					}
+				},
+				{
+					"name": "Get Requirements",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/protocol/requirements/{{protocol_address}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "protocol", "requirements", "{{protocol_address}}"]
+						},
+						"description": "Gets protocol requirements from ProtocolAccessControl contract."
+					}
+				},
+				{
+					"name": "Revoke User Access",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"protocolAddress\": \"{{protocol_address}}\",\n  \"userAddress\": \"{{user_address}}\",\n  \"privateKey\": \"your_protocol_private_key_here\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/protocol/access/revoke",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "protocol", "access", "revoke"]
+						},
+						"description": "Revokes user access on-chain. Returns transaction hash."
+					}
+				},
+				{
+					"name": "Check Access",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/protocol/access/{{protocol_address}}/{{user_address}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "protocol", "access", "{{protocol_address}}", "{{user_address}}"]
+						},
+						"description": "Checks if user has access. Reads from ProtocolAccessControl contract."
+					}
+				}
+			]
+		},
+		{
+			"name": "Proof Service",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/proof/health",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "proof", "health"]
+						}
+					}
+				},
+				{
+					"name": "Generate Proof",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer your_jwt_token_here",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"credential\": {\n    \"age\": 25,\n    \"jurisdiction\": 1234567890,\n    \"accredited\": 1,\n    \"credentialHash\": \"{{credential_hash}}\",\n    \"userAddress\": \"{{user_address}}\"\n  },\n  \"requirements\": {\n    \"minAge\": 21,\n    \"allowedJurisdictions\": [1234567890],\n    \"requireAccredited\": 1,\n    \"protocolAddress\": \"{{protocol_address}}\"\n  }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/proof/generate",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "proof", "generate"]
+						}
+					}
+				},
+				{
+					"name": "Get Proofs for Credential",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer your_jwt_token_here",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/proof/credential/{{credential_hash}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "proof", "credential", "{{credential_hash}}"]
+						}
+					}
+				}
+			]
+		}
+	]
+}
+

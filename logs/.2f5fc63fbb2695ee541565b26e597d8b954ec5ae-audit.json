@@ -1,0 +1,25 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "/Users/machine/Documents/Pyp/logs/.2f5fc63fbb2695ee541565b26e597d8b954ec5ae-audit.json",
+    "files": [
+        {
+            "date": 1766134535071,
+            "name": "/Users/machine/Documents/Pyp/logs/error-2025-12-19.log",
+            "hash": "7aa707a076823358524ca3893e556dcba5632feeebc11f171b0f7875c039554d"
+        },
+        {
+            "date": 1766214502216,
+            "name": "/Users/machine/Documents/Pyp/logs/error-2025-12-20.log",
+            "hash": "e54eacba22c9922a4a656d6091edac2559ba5ddc5743f3cc5f5d878df989115d"
+        },
+        {
+            "date": 1766304905628,
+            "name": "/Users/machine/Documents/Pyp/logs/error-2025-12-21.log",
+            "hash": "c31c5c5447e61d90bbc8687d5cb9a3690bf6a328742acccdc25305b8343571ed"
+        }
+    ],
+    "hashType": "sha256"
+}
