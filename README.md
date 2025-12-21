@@ -334,72 +334,71 @@ This approach ensures that:
 
 ```mermaid
 graph TB
-    subgraph "Off-Chain Layer"
-        User[User<br/>Wallet + Frontend]
-        Issuer[KYC Issuer<br/>Backend Service]
-        Frontend[React Frontend<br/>User/Issuer/Protocol Dashboards]
-        Gateway[API Gateway<br/>Port 3000]
-        UserService[User Service<br/>Port 3002]
-        IssuerService[Issuer Service<br/>Port 3001]
-        ProtocolService[Protocol Service<br/>Port 3003]
-        ProofService[Proof Service<br/>Port 3004]
-        Circuit[Go Circuit<br/>gnark/zkkyc.go]
-        ProofGen[Proof Generator<br/>Witness + Groth16]
+    subgraph OffChain["Off-Chain Layer"]
+        User[User Wallet]
+        Issuer[KYC Issuer]
+        Frontend[React Frontend]
+        Gateway[API Gateway]
+        UserService[User Service]
+        IssuerService[Issuer Service]
+        ProtocolService[Protocol Service]
+        ProofService[Proof Service]
+        Circuit[Go Circuit]
+        ProofGen[Proof Generator]
     end
 
-    subgraph "On-Chain Layer (Blockchain)"
-        Registry[CredentialRegistry<br/>Credential Management]
-        AccessControl[ProtocolAccessControl<br/>Access Control]
-        Verifier[ZKVerifier<br/>Groth16 Verification]
+    subgraph OnChain["On-Chain Layer"]
+        Registry[CredentialRegistry]
+        AccessControl[ProtocolAccessControl]
+        Verifier[ZKVerifier]
     end
 
-    User -->|Connect Wallet| Frontend
-    Frontend -->|API Calls| Gateway
-    Gateway -->|Route| UserService
-    Gateway -->|Route| IssuerService
-    Gateway -->|Route| ProtocolService
-    Gateway -->|Route| ProofService
+    User --> Frontend
+    Frontend --> Gateway
+    Gateway --> UserService
+    Gateway --> IssuerService
+    Gateway --> ProtocolService
+    Gateway --> ProofService
     
-    Issuer -->|Issue Credentials| IssuerService
-    IssuerService -->|Register Hash| Registry
+    Issuer --> IssuerService
+    IssuerService --> Registry
     
-    User -->|Request Proof| ProofService
-    ProofService -->|Generate| Circuit
-    Circuit -->|Witness| ProofGen
-    ProofGen -->|Proof + Signals| ProofService
-    ProofService -->|Return| User
+    User --> ProofService
+    ProofService --> Circuit
+    Circuit --> ProofGen
+    ProofGen --> ProofService
+    ProofService --> User
     
-    User -->|Submit Proof| AccessControl
-    AccessControl -->|Check Credential| Registry
-    AccessControl -->|Verify Proof| Verifier
-    AccessControl -->|Grant Access| User
+    User --> AccessControl
+    AccessControl --> Registry
+    AccessControl --> Verifier
+    AccessControl --> User
     
-    ProtocolService -->|Set Requirements| AccessControl
-    UserService -->|Query Requirements| AccessControl
-    UserService -->|Check Access| AccessControl
+    ProtocolService --> AccessControl
+    UserService --> AccessControl
 ```
 
 ### On-Chain Component Architecture
 
 ```mermaid
 graph LR
-    subgraph "Smart Contracts"
+    subgraph Contracts["Smart Contracts"]
         Registry[CredentialRegistry]
         AccessControl[ProtocolAccessControl]
         Verifier[ZKVerifier]
     end
     
-    subgraph "Registry State"
-        Credentials[credentials mapping<br/>hash → exists]
-        Issuers[credentialIssuers mapping<br/>hash → issuer]
-        Revoked[revokedCredentials mapping<br/>hash → revoked]
-        Trusted[trustedIssuers mapping<br/>address → trusted]
+    subgraph RegistryState["Registry State"]
+        Credentials[credentials mapping]
+        Issuers[credentialIssuers mapping]
+        Revoked[revokedCredentials mapping]
+        Trusted[trustedIssuers mapping]
     end
     
-    subgraph "Access Control State"
-        Requirements[protocolRequirements mapping<br/>protocol → Requirements]
-        Access[hasAccess mapping<br/>protocol → user → bool]
-        UserCreds[userCredentials mapping<br/>protocol → user → hash]
+    subgraph AccessState["Access Control State"]
+        Requirements[protocolRequirements mapping]
+        Access[hasAccess mapping]
+        UserCreds[userCredentials mapping]
     end
     
     Registry --> Credentials
@@ -410,49 +409,49 @@ graph LR
     AccessControl --> Requirements
     AccessControl --> Access
     AccessControl --> UserCreds
-    AccessControl -->|isCredentialValid| Registry
-    AccessControl -->|verifyProof| Verifier
+    AccessControl --> Registry
+    AccessControl --> Verifier
     
-    Registry -.->|Events| AccessControl
-    AccessControl -.->|Events| External[External Listeners]
+    Registry -.-> AccessControl
+    AccessControl -.-> External[External Listeners]
 ```
 
 ### Off-Chain Component Architecture
 
 ```mermaid
 graph TB
-    subgraph "Frontend Layer"
-        UserDash[User Dashboard<br/>React Component]
-        IssuerDash[Issuer Dashboard<br/>React Component]
-        ProtocolDash[Protocol Dashboard<br/>React Component]
+    subgraph FrontendLayer["Frontend Layer"]
+        UserDash[User Dashboard]
+        IssuerDash[Issuer Dashboard]
+        ProtocolDash[Protocol Dashboard]
     end
     
-    subgraph "API Gateway Layer"
-        Gateway[API Gateway<br/>Express + Proxy]
+    subgraph GatewayLayer["API Gateway Layer"]
+        Gateway[API Gateway]
     end
     
-    subgraph "Backend Services"
-        UserSvc[User Service<br/>Port 3002]
-        IssuerSvc[Issuer Service<br/>Port 3001]
-        ProtocolSvc[Protocol Service<br/>Port 3003]
-        ProofSvc[Proof Service<br/>Port 3004]
+    subgraph BackendServices["Backend Services"]
+        UserSvc[User Service]
+        IssuerSvc[Issuer Service]
+        ProtocolSvc[Protocol Service]
+        ProofSvc[Proof Service]
     end
     
-    subgraph "Proof Generation"
-        Circuit[Go Circuit<br/>circuit/zkkyc.go]
+    subgraph ProofGen["Proof Generation"]
+        Circuit[Go Circuit]
         WitnessGen[Witness Generator]
-        Prover[Groth16 Prover<br/>gnark]
-        ProvingKey[Proving Key<br/>build/proving_key.pk]
+        Prover[Groth16 Prover]
+        ProvingKey[Proving Key]
     end
     
-    subgraph "Data Layer"
-        DB[(Database<br/>SQLite/PostgreSQL)]
-        EventListener[Event Listener<br/>Contract Events]
+    subgraph DataLayer["Data Layer"]
+        DB[(Database)]
+        EventListener[Event Listener]
     end
     
-    subgraph "Blockchain Interaction"
-        Web3[Web3 Provider<br/>ethers.js]
-        Contracts[Contract Clients<br/>ABI + Addresses]
+    subgraph Blockchain["Blockchain Interaction"]
+        Web3[Web3 Provider]
+        Contracts[Contract Clients]
     end
     
     UserDash --> Gateway
