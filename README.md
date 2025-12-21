@@ -2221,7 +2221,7 @@ flowchart TD
     CheckOnChain -->|Already Exists| ShowExistsError[Show: Credential Already Exists]
     CheckOnChain -->|Was Revoked| ShowRevokedError[Show: Credential Was Revoked]
     CheckOnChain -->|Not Issuer| ShowNotIssuerError[Show: Not Trusted Issuer]
-    CheckOnChain -->|Success| StoreCredential[Store Credential:<br/>credentials[hash] = true<br/>credentialIssuers[hash] = issuer]
+    CheckOnChain -->|Success| StoreCredential[Store Credential:<br/>credentials mapping = true<br/>credentialIssuers mapping = issuer]
     
     StoreCredential --> EmitEvent[Emit CredentialIssued Event]
     EmitEvent --> SaveToDB{Save to<br/>Database?}
@@ -2246,7 +2246,7 @@ flowchart TD
     
     CheckRevokeAuth -->|Not Authorized| ShowRevokeAuthError[Show: Not Authorized to Revoke]
     CheckRevokeAuth -->|Credential Not Found| ShowNotFoundError[Show: Credential Does Not Exist]
-    CheckRevokeAuth -->|Success| MarkRevoked[Mark as Revoked:<br/>revokedCredentials[hash] = true]
+    CheckRevokeAuth -->|Success| MarkRevoked[Mark as Revoked:<br/>revokedCredentials mapping = true]
     
     MarkRevoked --> EmitRevokeEvent[Emit CredentialRevoked Event]
     EmitRevokeEvent --> RefreshListRevoke[Refresh Credentials List]
