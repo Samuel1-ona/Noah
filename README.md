@@ -1,6 +1,6 @@
-# ZK-KYC Protocol: Privacy-Preserving KYC for DeFi
+# NOAH: Privacy-Preserving KYC for DeFi
 
-A zero-knowledge proof-based Know Your Customer (KYC) system that enables DeFi protocols to verify user eligibility without exposing personal information. Users can prove they meet compliance requirements (age, jurisdiction, accreditation status) while maintaining complete privacy.
+**NOAH** (Network for On-chain Authenticated Handshakes) is a zero-knowledge proof-based Know Your Customer (KYC) system that enables DeFi protocols to verify user eligibility without exposing personal information. Users can prove they meet compliance requirements (age, jurisdiction, accreditation status) while maintaining complete privacy.
 
 ## Table of Contents
 
@@ -15,6 +15,11 @@ A zero-knowledge proof-based Know Your Customer (KYC) system that enables DeFi p
 - [Issuer Guide: Managing Credentials](#issuer-guide-managing-credentials)
 - [Getting Started](#getting-started)
 - [Development](#development)
+- [API Reference](#api-reference)
+- [Security Considerations](#security-considerations)
+- [Roadmap & Future Enhancements](#roadmap--future-enhancements)
+- [License](#license)
+- [Resources](#resources)
 
 ## Overview
 
@@ -162,7 +167,7 @@ For this circuit with 14 public inputs, the verification key contains:
 
 ### Circuit Constraints
 
-The ZK-KYC circuit is compiled into a **Rank-1 Constraint System (R1CS)**, which is a standard format for representing arithmetic circuits in zero-knowledge proof systems.
+The NOAH circuit is compiled into a **Rank-1 Constraint System (R1CS)**, which is a standard format for representing arithmetic circuits in zero-knowledge proof systems.
 
 #### R1CS Representation
 
@@ -186,7 +191,7 @@ For a valid witness `s`, every constraint must satisfy:
 
 #### Circuit Structure
 
-The ZK-KYC circuit (defined in [`circuit/zkkyc.go`](circuit/zkkyc.go)) implements the following constraints:
+The NOAH circuit (defined in [`circuit/zkkyc.go`](circuit/zkkyc.go)) implements the following constraints:
 
 **1. Age Verification:**
 ```
@@ -1510,7 +1515,7 @@ event RequirementsSet(
 
 ## User Guide: Accessing DeFi Protocols
 
-This section provides a comprehensive guide for users to access DeFi protocols using the ZK-KYC system. The User Dashboard enables you to prove compliance with protocol requirements while maintaining complete privacy of your personal information.
+This section provides a comprehensive guide for users to access DeFi protocols using the NOAH system. The User Dashboard enables you to prove compliance with protocol requirements while maintaining complete privacy of your personal information.
 
 ### Overview
 
@@ -1865,7 +1870,7 @@ flowchart TD
 
 ## Issuer Guide: Managing Credentials
 
-This section provides a comprehensive guide for KYC issuers to manage credentials using the ZK-KYC system. The Issuer Dashboard enables you to register, view, and revoke credentials for users while maintaining proper credential lifecycle management.
+This section provides a comprehensive guide for KYC issuers to manage credentials using the NOAH system. The Issuer Dashboard enables you to register, view, and revoke credentials for users while maintaining proper credential lifecycle management.
 
 ### Overview
 
@@ -2474,7 +2479,7 @@ go run cmd/prove/main.go build/test-input.json
 ```
 .
 ├── circuit/                    # Go circuit definitions
-│   ├── zkkyc.go              # Main ZK-KYC circuit
+│   ├── zkkyc.go              # Main NOAH circuit
 │   └── zkkyc_test.go         # Circuit tests
 ├── cmd/
 │   ├── generate-verifier/    # Verifier generation tool
@@ -3442,6 +3447,277 @@ Authorization: Bearer YOUR_JWT_TOKEN
 - **Zero Address Checks**: Some functions don't check for zero addresses - add these in production.
 - **Jurisdiction Limits**: Maximum 10 jurisdictions per protocol to prevent gas issues.
 - **Proof Verification**: Always verify proofs on-chain; never trust off-chain verification alone.
+
+## Roadmap & Future Enhancements
+
+NOAH is continuously evolving to provide better privacy, performance, and user experience. This section outlines planned technical improvements and product enhancements.
+
+### Technical Improvements
+
+#### 1. Multi-Party Trusted Setup (PPOT Ceremony)
+
+**Current State**: NOAH uses a single-party trusted setup for the Groth16 proving and verification keys.
+
+**Future Enhancement**: Implement a **Powers of Tau (PPOT) ceremony** with multiple participants to ensure trustless setup.
+
+**Benefits**:
+- Eliminates the need to trust a single party
+- Increases security and decentralization
+- Follows industry best practices (similar to Zcash, Tornado Cash)
+- Enables community participation in setup
+
+**Implementation Considerations**:
+- Use existing PPOT ceremony tools (e.g., Perpetual Powers of Tau)
+- Coordinate multi-party ceremony with key stakeholders
+- Document ceremony process and participants
+- Publish ceremony transcript for verification
+
+#### 2. Circuit Optimizations
+
+**Current State**: The circuit has constraints for age verification, jurisdiction checks, hash verification, and accreditation status.
+
+**Future Enhancements**:
+- **Reduce Constraint Count**: Optimize arithmetic operations to minimize circuit size
+- **Lookup Tables**: Use lookup tables for jurisdiction membership checks instead of individual comparisons
+- **Custom Gates**: Implement custom gates for common operations (e.g., hash truncation)
+- **Constraint Reordering**: Optimize constraint ordering for better proving performance
+
+**Expected Impact**:
+- 20-30% reduction in proof generation time
+- Lower gas costs for verification
+- Faster user experience
+
+#### 3. Alternative Proof Systems
+
+**Current State**: NOAH uses Groth16 zk-SNARKs.
+
+**Future Options**:
+
+**PLONK**:
+- Universal trusted setup (reusable across circuits)
+- Smaller verification keys
+- Better for circuit updates
+
+**STARKs**:
+- No trusted setup required
+- Quantum-resistant
+- Larger proof sizes but faster verification
+
+**Implementation Strategy**:
+- Evaluate proof size vs. verification cost trade-offs
+- Consider hybrid approach (Groth16 for current use cases, PLONK for new features)
+- Monitor industry developments in proof systems
+
+#### 4. Batch Verification
+
+**Current State**: Each proof is verified individually on-chain.
+
+**Future Enhancement**: Implement batch verification for multiple proofs in a single transaction.
+
+**Benefits**:
+- Reduced gas costs per verification (amortized)
+- Better scalability for protocols with high verification volume
+- Enables bulk access grants
+
+**Implementation Approach**:
+- Aggregate multiple proofs into a single batch proof
+- Verify batch proof on-chain
+- Maintain individual proof validity tracking
+
+#### 5. Recursive Proofs for Composability
+
+**Current State**: Proofs verify single credential attributes.
+
+**Future Enhancement**: Support recursive proofs that can verify multiple credentials or combine proofs from different sources.
+
+**Use Cases**:
+- Multi-credential verification (e.g., "I have KYC credential AND accreditation credential")
+- Cross-protocol proof portability
+- Proof of proofs (verifying that a proof was verified elsewhere)
+
+**Technical Requirements**:
+- Circuit modifications to accept proof inputs
+- Recursive verification key generation
+- Careful gas cost analysis
+
+#### 6. Privacy-Preserving Credential Updates
+
+**Current State**: Credentials are immutable once issued; updates require new credentials.
+
+**Future Enhancement**: Enable privacy-preserving credential updates without revealing what changed.
+
+**Implementation Ideas**:
+- Use zero-knowledge proofs to show credential update validity
+- Maintain credential version history
+- Allow selective update disclosure (e.g., "age updated" without revealing old/new age)
+
+### Product Improvements
+
+#### 1. Mobile App Support
+
+**Enhancement**: Develop native mobile applications (iOS and Android) for NOAH.
+
+**Features**:
+- Mobile wallet integration (WalletConnect)
+- QR code scanning for protocol addresses
+- Push notifications for credential status
+- Offline proof generation preparation
+
+**Benefits**:
+- Broader user accessibility
+- Better user experience on mobile devices
+- Increased adoption in mobile-first markets
+
+#### 2. Browser Extension
+
+**Enhancement**: Create a browser extension for seamless DeFi protocol integration.
+
+**Features**:
+- Automatic protocol detection on DeFi websites
+- One-click proof generation and submission
+- Credential management in extension popup
+- Background proof generation
+
+**Use Cases**:
+- Users visiting DeFi protocols automatically see NOAH integration
+- Seamless access without leaving the protocol website
+- Reduced friction in user onboarding
+
+#### 3. Multi-Chain Deployment
+
+**Current State**: NOAH is deployed on Mantle Sepolia testnet.
+
+**Future Chains**:
+- **Ethereum Mainnet**: Primary deployment for production
+- **Polygon**: Lower gas costs, high throughput
+- **Arbitrum**: Fast finality, low costs
+- **Optimism**: EVM compatibility, low fees
+- **Base**: Coinbase-backed, growing ecosystem
+- **zkSync Era**: Native zk-rollup, efficient verification
+
+**Implementation Strategy**:
+- Deploy verifier contracts on each chain
+- Cross-chain credential portability (via bridges or message passing)
+- Unified frontend supporting multiple chains
+- Chain-specific gas optimization
+
+#### 4. Credential Expiration and Renewal
+
+**Enhancement**: Add expiration timestamps to credentials with renewal mechanisms.
+
+**Features**:
+- Expiration date in credential hash computation
+- Automatic expiration checks in circuit
+- Renewal workflow for issuers
+- User notifications before expiration
+
+**Benefits**:
+- Ensures credentials remain current
+- Compliance with regulatory requirements
+- Better credential lifecycle management
+
+#### 5. Delegated Proof Generation
+
+**Enhancement**: Allow users to delegate proof generation to trusted services.
+
+**Use Cases**:
+- Users with limited computational resources
+- Enterprise users with dedicated proof generation services
+- Mobile users delegating to cloud services
+
+**Security Considerations**:
+- Ensure delegation doesn't compromise privacy
+- Use encryption for credential data transmission
+- Implement access controls for delegated services
+
+#### 6. Analytics Dashboard for Protocols
+
+**Enhancement**: Provide protocols with analytics on access grants and user demographics (privacy-preserving).
+
+**Metrics**:
+- Total access grants (without revealing user identities)
+- Jurisdiction distribution (aggregated)
+- Age range statistics (aggregated)
+- Access grant trends over time
+
+**Privacy Guarantees**:
+- All analytics are aggregated
+- No individual user data exposed
+- Differential privacy techniques where applicable
+
+#### 7. SDK for Protocol Integration
+
+**Enhancement**: Develop and maintain SDKs for easy protocol integration.
+
+**Supported Languages**:
+- **JavaScript/TypeScript**: For web3 dApps
+- **Solidity**: Smart contract integration helpers
+- **Python**: For backend services
+- **Go**: For high-performance services
+
+**SDK Features**:
+- Proof verification helpers
+- Requirements management
+- Access control integration
+- Error handling and retry logic
+- TypeScript type definitions
+
+**Documentation**:
+- Integration guides
+- Code examples
+- Best practices
+- API reference
+
+#### 8. Support for Additional Credential Attributes
+
+**Current State**: Credentials support age, jurisdiction, and accreditation status.
+
+**Future Attributes**:
+- **Income Level**: Privacy-preserving income verification
+- **Residency Status**: Proof of residency without revealing address
+- **Professional Licenses**: Verify professional credentials
+- **Credit Score Ranges**: Creditworthiness without exact score
+- **Custom Attributes**: Protocol-specific requirements
+
+**Implementation Approach**:
+- Extensible circuit design
+- Backward compatibility with existing credentials
+- Migration path for existing credentials
+- Clear documentation for new attributes
+
+### Implementation Timeline
+
+**Phase 1 (Q1 2025)**:
+- Multi-party trusted setup ceremony
+- Circuit optimizations
+- Mobile app MVP
+
+**Phase 2 (Q2 2025)**:
+- Browser extension
+- Multi-chain deployment (Ethereum, Polygon)
+- SDK development
+
+**Phase 3 (Q3 2025)**:
+- Batch verification
+- Credential expiration
+- Analytics dashboard
+
+**Phase 4 (Q4 2025)**:
+- Recursive proofs research
+- Additional credential attributes
+- Delegated proof generation
+
+### Contributing to NOAH
+
+We welcome contributions! Areas where help is especially needed:
+
+- **Circuit Optimization**: Help reduce constraint count and improve proving performance
+- **Multi-Chain Deployment**: Deploy and test on different chains
+- **Documentation**: Improve guides and add examples
+- **Testing**: Expand test coverage and add integration tests
+- **Security Audits**: Review code and suggest improvements
+
+See our [Contributing Guidelines](#) (to be added) for more information.
 
 ## License
 

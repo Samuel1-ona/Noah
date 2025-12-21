@@ -9,10 +9,10 @@ function HomePage() {
   return (
     <Box>
       <Typography variant="h3" component="h1" gutterBottom>
-        Welcome to ZK-KYC Protocol
+        Welcome to NOAH
       </Typography>
       <Typography variant="body1" paragraph>
-        A privacy-preserving KYC verification system using Zero-Knowledge proofs.
+        Privacy-preserving KYC verification for DeFi using Zero-Knowledge proofs.
       </Typography>
 
       <Grid container spacing={3} sx={{ mt: 2 }}>

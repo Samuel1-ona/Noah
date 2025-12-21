@@ -13,8 +13,13 @@ import {
   FormControlLabel,
   Checkbox,
   Chip,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { useMutation, useQuery } from '@tanstack/react-query';
+import { ethers } from 'ethers';
 import walletService from '../services/walletService';
 import { protocolService } from '../services/apiClient';
 import { CONTRACT_ADDRESSES } from '../config/constants';
@@ -26,6 +31,10 @@ function ProtocolDashboard() {
   const [requireAccredited, setRequireAccredited] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const [hashedJurisdictions, setHashedJurisdictions] = useState(null);
+  const [originalJurisdictions, setOriginalJurisdictions] = useState(null);
+  const [requirementsHash, setRequirementsHash] = useState(null);
+  const [copiedIndex, setCopiedIndex] = useState(null);
 
   const account = walletService.getAccount();
   const protocolAddress = account || CONTRACT_ADDRESSES.ProtocolAccessControl;
@@ -40,11 +49,21 @@ function ProtocolDashboard() {
   // Set requirements mutation
   const setRequirementsMutation = useMutation({
     mutationFn: async (data) => {
-      return protocolService.setRequirements(data);
+      // Extract metadata before sending
+      const { _originalJurisdictions, _hashedJurisdictions, ...requestData } = data;
+      return protocolService.setRequirements(requestData);
     },
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
       setSuccess(`Requirements set! Transaction: ${data.transactionHash}`);
       setError(null);
+      // Store the hashed jurisdictions, original list, and requirements hash for display
+      if (variables._originalJurisdictions && variables._hashedJurisdictions) {
+        setOriginalJurisdictions(variables._originalJurisdictions);
+        setHashedJurisdictions(variables._hashedJurisdictions);
+      }
+      if (variables._requirementsHash) {
+        setRequirementsHash(variables._requirementsHash);
+      }
       refetchRequirements();
     },
     onError: (err) => {
@@ -77,7 +96,14 @@ function ProtocolDashboard() {
 
     // Parse and convert jurisdiction strings to hashes
     let allowedJurisdictions;
+    let originalJurisdictionList = [];
     try {
+      // Get original jurisdiction list (before hashing)
+      originalJurisdictionList = jurisdictions
+        .split(',')
+        .map((j) => j.trim())
+        .filter((j) => j.length > 0);
+      
       allowedJurisdictions = parseJurisdictions(jurisdictions);
       if (allowedJurisdictions.length === 0 && jurisdictions.trim().length > 0) {
         setError('Please enter at least one valid jurisdiction');
@@ -138,11 +164,22 @@ function ProtocolDashboard() {
       return;
     }
 
+    // Compute requirements hash (combines all requirements)
+    const reqHash = computeRequirementsHash(
+      parseInt(minAge, 10),
+      allowedJurisdictions.map(h => String(h)),
+      requireAccredited
+    );
+
     const requestData = {
       protocolAddress,
       minAge: parseInt(minAge, 10),
       allowedJurisdictions: jurisdictionsForAPI,
       requireAccredited,
+      // Store original and hashed for display after success
+      _originalJurisdictions: originalJurisdictionList,
+      _hashedJurisdictions: allowedJurisdictions.map(h => String(h)),
+      _requirementsHash: reqHash,
     };
 
     console.log('Sending requirements:', {
@@ -162,6 +199,51 @@ function ProtocolDashboard() {
     });
 
     setRequirementsMutation.mutate(requestData);
+  };
+
+  const handleCopyHash = async (hash, index) => {
+    try {
+      await navigator.clipboard.writeText(String(hash));
+      setCopiedIndex(index);
+      setTimeout(() => setCopiedIndex(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
+
+  const handleCopyAllHashes = async () => {
+    if (!hashedJurisdictions || hashedJurisdictions.length === 0) return;
+    const allHashes = hashedJurisdictions.map(h => String(h)).join(', ');
+    try {
+      await navigator.clipboard.writeText(allHashes);
+      setCopiedIndex('all');
+      setTimeout(() => setCopiedIndex(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
+
+  const computeRequirementsHash = (minAge, jurisdictions, requireAccredited) => {
+    // Create a deterministic string representation of all requirements
+    // Format: minAge:value,jurisdictions:hash1,hash2,...,accredited:0|1
+    const jurisdictionsStr = jurisdictions.map(j => String(j)).join(',');
+    const accreditedValue = requireAccredited ? 1 : 0;
+    const requirementsData = `minAge:${minAge},jurisdictions:${jurisdictionsStr},accredited:${accreditedValue}`;
+    
+    // Hash using keccak256 (same as credential hashing)
+    const hash = ethers.keccak256(ethers.toUtf8Bytes(requirementsData));
+    return hash;
+  };
+
+  const handleCopyRequirementsHash = async () => {
+    if (!requirementsHash) return;
+    try {
+      await navigator.clipboard.writeText(requirementsHash);
+      setCopiedIndex('requirements');
+      setTimeout(() => setCopiedIndex(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
   };
 
   if (!account) {
@@ -280,9 +362,132 @@ function ProtocolDashboard() {
         )}
         {success && (
           <Grid item xs={12}>
-            <Alert severity="success" onClose={() => setSuccess(null)}>
+            <Alert 
+              severity="success" 
+              onClose={() => {
+                setSuccess(null);
+                setHashedJurisdictions(null);
+                setOriginalJurisdictions(null);
+                setRequirementsHash(null);
+              }}
+            >
               {success}
             </Alert>
+          </Grid>
+        )}
+
+        {/* Requirements Hash Display */}
+        {requirementsHash && (
+          <Grid item xs={12}>
+            <Card sx={{ bgcolor: 'primary.light', color: 'primary.contrastText' }}>
+              <CardContent>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                  <Typography variant="h6" sx={{ color: 'inherit' }}>
+                    Requirements Hash
+                  </Typography>
+                  <Tooltip title={copiedIndex === 'requirements' ? 'Copied!' : 'Copy requirements hash'}>
+                    <IconButton 
+                      onClick={handleCopyRequirementsHash}
+                      color="inherit"
+                      size="small"
+                      sx={{ color: 'inherit' }}
+                    >
+                      {copiedIndex === 'requirements' ? <CheckCircleIcon /> : <ContentCopyIcon />}
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+                <Typography variant="body2" sx={{ mb: 1, color: 'inherit', opacity: 0.9 }}>
+                  This hash represents all requirements combined (minAge, jurisdictions, accredited status)
+                </Typography>
+                <Box
+                  sx={{
+                    p: 1.5,
+                    bgcolor: 'rgba(255, 255, 255, 0.1)',
+                    borderRadius: 1,
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                  }}
+                >
+                  <code style={{ 
+                    wordBreak: 'break-all', 
+                    fontSize: '0.875rem',
+                    color: 'inherit'
+                  }}>
+                    {requirementsHash}
+                  </code>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+        )}
+
+        {/* Hashed Jurisdictions Display */}
+        {hashedJurisdictions && hashedJurisdictions.length > 0 && (
+          <Grid item xs={12}>
+            <Card>
+              <CardContent>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                  <Typography variant="h6">
+                    Individual Jurisdiction Hashes
+                  </Typography>
+                  <Tooltip title={copiedIndex === 'all' ? 'Copied!' : 'Copy all jurisdiction hashes'}>
+                    <IconButton 
+                      onClick={handleCopyAllHashes}
+                      color={copiedIndex === 'all' ? 'success' : 'default'}
+                      size="small"
+                    >
+                      {copiedIndex === 'all' ? <CheckCircleIcon /> : <ContentCopyIcon />}
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  Original input: <strong>{originalJurisdictions?.join(', ') || jurisdictions}</strong>
+                </Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  {originalJurisdictions?.map((original, index) => {
+                    const hash = hashedJurisdictions[index];
+                    if (!hash) return null;
+                    return (
+                      <Box
+                        key={index}
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 1,
+                          p: 1,
+                          bgcolor: 'background.default',
+                          borderRadius: 1,
+                          border: '1px solid',
+                          borderColor: 'divider',
+                        }}
+                      >
+                        <Typography variant="body2" sx={{ flex: 1, minWidth: 0 }}>
+                          <strong>{original}:</strong>{' '}
+                          <code style={{ 
+                            wordBreak: 'break-all', 
+                            fontSize: '0.875rem',
+                            color: 'primary.main'
+                          }}>
+                            {String(hash)}
+                          </code>
+                        </Typography>
+                        <Tooltip title={copiedIndex === index ? 'Copied!' : 'Copy hash'}>
+                          <IconButton
+                            onClick={() => handleCopyHash(hash, index)}
+                            color={copiedIndex === index ? 'success' : 'default'}
+                            size="small"
+                          >
+                            {copiedIndex === index ? <CheckCircleIcon fontSize="small" /> : <ContentCopyIcon fontSize="small" />}
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
+                    );
+                  })}
+                </Box>
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block' }}>
+                  These are the individual jurisdiction hashes that were sent to the smart contract. You can copy individual hashes or all of them at once.
+                </Typography>
+              </CardContent>
+            </Card>
           </Grid>
         )}
       </Grid>

@@ -1,7 +1,7 @@
 {
-  "name": "zk-kyc-backend",
+  "name": "noah-backend",
   "version": "1.0.0",
-  "description": "Backend services for ZK-KYC protocol",
+  "description": "Backend services for NOAH - Privacy-Preserving KYC",
   "main": "src/index.js",
   "type": "module",
   "scripts": {
@@ -14,9 +14,12 @@
     "proof:dev": "node --watch src/proof/server.js"
   },
   "keywords": [
+    "noah",
     "zk-kyc",
     "blockchain",
-    "ethereum"
+    "ethereum",
+    "privacy",
+    "defi"
   ],
   "author": "",
   "license": "MIT",

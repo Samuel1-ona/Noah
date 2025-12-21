@@ -18,7 +18,7 @@ function Layout({ children }) {
       <AppBar position="static">
         <Toolbar>
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            ZK-KYC Protocol
+            NOAH
           </Typography>
           <Box sx={{ display: 'flex', gap: 1, mr: 2 }}>
             {navItems.map((item) => (

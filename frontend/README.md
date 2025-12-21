@@ -1,6 +1,6 @@
-# ZK-KYC Frontend
+# NOAH Frontend
 
-Frontend application for the ZK-KYC Protocol system, built with React and Vite.
+Frontend application for the NOAH system, built with React and Vite.
 
 ## Features
 

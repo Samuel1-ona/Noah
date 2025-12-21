@@ -1,6 +1,6 @@
-# ZK-KYC Backend Services
+# NOAH Backend Services
 
-Backend services for interacting with the ZK-KYC smart contracts.
+Backend services for interacting with the NOAH smart contracts.
 
 ## Structure
 

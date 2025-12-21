@@ -1,8 +1,8 @@
 {
-  "name": "zk-kyc-frontend",
+  "name": "noah-frontend",
   "version": "1.0.0",
   "type": "module",
-  "description": "Frontend application for ZK-KYC system",
+  "description": "Frontend application for NOAH - Privacy-Preserving KYC",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

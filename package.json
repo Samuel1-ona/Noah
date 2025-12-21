@@ -1,7 +1,7 @@
 {
-  "name": "zk-kyc-mantle",
+  "name": "noah",
   "version": "1.0.0",
-  "description": "ZK-KYC with Selective Disclosure for Mantle Network",
+  "description": "NOAH - Privacy-Preserving KYC with Selective Disclosure for DeFi",
   "main": "index.js",
   "scripts": {
     "compile": "forge build",
@@ -11,6 +11,7 @@
     "deploy:mantle-testnet": "forge script script/Deploy.s.sol:DeployScript --rpc-url mantle_testnet --broadcast --verify"
   },
   "keywords": [
+    "noah",
     "zk",
     "zero-knowledge",
     "kyc",
