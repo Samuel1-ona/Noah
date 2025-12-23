@@ -8,6 +8,8 @@ const CREDENTIAL_REGISTRY_ABI = [
   'function revokedCredentials(bytes32) view returns (bool)',
   'function credentialIssuers(bytes32) view returns (address)',
   'function getIssuerInfo(address issuer) view returns (bool isTrusted, string memory name)',
+  'function registerCredential(bytes32 credentialHash, address user)',
+  'function revokeCredential(bytes32 credentialHash)',
   'event CredentialIssued(address indexed user, bytes32 indexed credentialHash, address indexed issuer, uint256 timestamp)',
   'event CredentialRevoked(bytes32 indexed credentialHash, address indexed issuer, uint256 timestamp)',
 ];
@@ -18,6 +20,8 @@ const PROTOCOL_ACCESS_CONTROL_ABI = [
   'function getRequirements(address protocol) view returns (uint256 minAge, uint256[] memory allowedJurisdictions, bool requireAccredited)',
   'function protocolRequirements(address) view returns (uint256 minAge, bool requireAccredited, bool isSet)',
   'function userCredentials(address protocol, address user) view returns (bytes32)',
+  'function setRequirements(uint256 minAge, uint256[] memory allowedJurisdictions, bool requireAccredited)',
+  'function verifyAndGrantAccess(uint[2] a, uint[2][2] b, uint[2] c, uint[13] publicSignals, bytes32 credentialHash, address user)',
   'event AccessGranted(address indexed user, address indexed protocol, bytes32 credentialHash, uint256 timestamp)',
   'event AccessRevoked(address indexed user, address indexed protocol, uint256 timestamp)',
   'event RequirementsSet(address indexed protocol, uint256 minAge, uint256[] allowedJurisdictions, bool requireAccredited)',
@@ -168,6 +172,175 @@ class ContractClient {
       this.initialize();
     }
     return this.protocolAccessControl.on('AccessGranted', callback);
+  }
+
+  /**
+   * Set protocol requirements (requires signer)
+   * @param {ethers.Signer} signer - The signer (from user's wallet)
+   * @param {number} minAge - Minimum age required
+   * @param {string[]|number[]} allowedJurisdictions - Array of jurisdiction hashes (as strings or numbers)
+   * @param {boolean} requireAccredited - Whether accredited status is required
+   * @returns {Promise<Object>} Transaction receipt with hash
+   */
+  async setRequirements(signer, minAge, allowedJurisdictions, requireAccredited) {
+    if (!signer) {
+      throw new Error('Signer is required to set requirements');
+    }
+
+    // Initialize contract with signer
+    const accessControl = new ethers.Contract(
+      CONTRACT_ADDRESSES.ProtocolAccessControl,
+      PROTOCOL_ACCESS_CONTROL_ABI,
+      signer
+    );
+
+    // Convert jurisdictions to BigInt array
+    const jurisdictionsArray = allowedJurisdictions.map(j => {
+      if (typeof j === 'string') {
+        if (j.startsWith('0x')) {
+          return BigInt(j);
+        }
+        return BigInt(j);
+      }
+      return BigInt(j);
+    });
+
+    try {
+      const tx = await accessControl.setRequirements(
+        BigInt(minAge),
+        jurisdictionsArray,
+        requireAccredited
+      );
+      
+      const receipt = await tx.wait();
+      
+      return {
+        transactionHash: tx.hash,
+        receipt,
+      };
+    } catch (error) {
+      console.error('Error setting requirements:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Register a credential (requires issuer signer)
+   * @param {ethers.Signer} signer - The signer (from issuer's wallet)
+   * @param {string} credentialHash - The credential hash (bytes32)
+   * @param {string} userAddress - The user's address
+   * @returns {Promise<Object>} Transaction receipt with hash
+   */
+  async registerCredential(signer, credentialHash, userAddress) {
+    if (!signer) {
+      throw new Error('Signer is required to register credential');
+    }
+
+    // Initialize contract with signer
+    const credentialRegistry = new ethers.Contract(
+      CONTRACT_ADDRESSES.CredentialRegistry,
+      CREDENTIAL_REGISTRY_ABI,
+      signer
+    );
+
+    try {
+      const tx = await credentialRegistry.registerCredential(credentialHash, userAddress);
+      const receipt = await tx.wait();
+      
+      return {
+        transactionHash: tx.hash,
+        receipt,
+      };
+    } catch (error) {
+      console.error('Error registering credential:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Revoke a credential (requires issuer signer)
+   * @param {ethers.Signer} signer - The signer (from issuer's wallet)
+   * @param {string} credentialHash - The credential hash (bytes32)
+   * @returns {Promise<Object>} Transaction receipt with hash
+   */
+  async revokeCredential(signer, credentialHash) {
+    if (!signer) {
+      throw new Error('Signer is required to revoke credential');
+    }
+
+    // Initialize contract with signer
+    const credentialRegistry = new ethers.Contract(
+      CONTRACT_ADDRESSES.CredentialRegistry,
+      CREDENTIAL_REGISTRY_ABI,
+      signer
+    );
+
+    try {
+      const tx = await credentialRegistry.revokeCredential(credentialHash);
+      const receipt = await tx.wait();
+      
+      return {
+        transactionHash: tx.hash,
+        receipt,
+      };
+    } catch (error) {
+      console.error('Error revoking credential:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Verify proof and grant access (requires protocol signer)
+   * @param {ethers.Signer} signer - The signer (from protocol's wallet)
+   * @param {Object} proof - Proof object with a, b, c arrays
+   * @param {string[]} publicSignals - Public signals array (13 elements)
+   * @param {string} credentialHash - The credential hash (bytes32)
+   * @param {string} userAddress - The user's address
+   * @returns {Promise<Object>} Transaction receipt with hash
+   */
+  async verifyAndGrantAccess(signer, proof, publicSignals, credentialHash, userAddress) {
+    if (!signer) {
+      throw new Error('Signer is required to verify and grant access');
+    }
+
+    // Initialize contract with signer
+    const accessControl = new ethers.Contract(
+      CONTRACT_ADDRESSES.ProtocolAccessControl,
+      PROTOCOL_ACCESS_CONTROL_ABI,
+      signer
+    );
+
+    // Convert proof arrays to BigInt arrays
+    const a = [BigInt(proof.a[0]), BigInt(proof.a[1])];
+    const b = [
+      [BigInt(proof.b[0][0]), BigInt(proof.b[0][1])],
+      [BigInt(proof.b[1][0]), BigInt(proof.b[1][1])]
+    ];
+    const c = [BigInt(proof.c[0]), BigInt(proof.c[1])];
+
+    // Convert public signals to BigInt array (13 elements)
+    const publicSignalsArray = publicSignals.slice(0, 13).map(s => BigInt(s));
+
+    try {
+      const tx = await accessControl.verifyAndGrantAccess(
+        a,
+        b,
+        c,
+        publicSignalsArray,
+        credentialHash,
+        userAddress
+      );
+      
+      const receipt = await tx.wait();
+      
+      return {
+        transactionHash: tx.hash,
+        receipt,
+      };
+    } catch (error) {
+      console.error('Error verifying proof and granting access:', error);
+      throw error;
+    }
   }
 }
 

@@ -53,9 +53,10 @@ function IssuerDashboard() {
     enabled: !!account,
   });
 
-  // Register credential mutation
+  // Register credential mutation (uses backend API for gasless transactions)
   const registerMutation = useMutation({
     mutationFn: async ({ credentialHash, userAddress }) => {
+      // Use backend API - backend has trusted issuer private key
       return issuerService.registerCredential(credentialHash, userAddress);
     },
     onSuccess: (data) => {
@@ -88,9 +89,10 @@ function IssuerDashboard() {
     },
   });
 
-  // Revoke credential mutation
+  // Revoke credential mutation (uses backend API for gasless transactions)
   const revokeMutation = useMutation({
     mutationFn: async (credentialHash) => {
+      // Use backend API - backend has trusted issuer private key
       return issuerService.revokeCredential(credentialHash);
     },
     onSuccess: (data) => {

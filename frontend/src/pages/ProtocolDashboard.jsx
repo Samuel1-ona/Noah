@@ -22,6 +22,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { ethers } from 'ethers';
 import walletService from '../services/walletService';
 import { protocolService } from '../services/apiClient';
+import contractClient from '../services/contractClient';
 import { CONTRACT_ADDRESSES } from '../config/constants';
 import { parseJurisdictions } from '../utils/jurisdiction';
 
@@ -50,8 +51,34 @@ function ProtocolDashboard() {
   const setRequirementsMutation = useMutation({
     mutationFn: async (data) => {
       // Extract metadata before sending
-      const { _originalJurisdictions, _hashedJurisdictions, ...requestData } = data;
-      return protocolService.setRequirements(requestData);
+      const { _originalJurisdictions, _hashedJurisdictions, _requirementsHash, ...requestData } = data;
+      
+      // Get signer from wallet
+      const provider = walletService.getProvider();
+      if (!provider) {
+        throw new Error('Wallet not connected');
+      }
+      
+      const signer = await provider.getSigner();
+      
+      // Call contract directly using user's wallet
+      const result = await contractClient.setRequirements(
+        signer,
+        requestData.minAge,
+        requestData.allowedJurisdictions,
+        requestData.requireAccredited
+      );
+      
+      // Return in same format as API response
+      return {
+        transactionHash: result.transactionHash,
+        protocolAddress: requestData.protocolAddress,
+        requirements: {
+          minAge: requestData.minAge,
+          allowedJurisdictions: requestData.allowedJurisdictions,
+          requireAccredited: requestData.requireAccredited,
+        },
+      };
     },
     onSuccess: (data, variables) => {
       setSuccess(`Requirements set! Transaction: ${data.transactionHash}`);
@@ -64,19 +91,87 @@ function ProtocolDashboard() {
       if (variables._requirementsHash) {
         setRequirementsHash(variables._requirementsHash);
       }
-      refetchRequirements();
+      
+      // Wait for transaction to be confirmed before refetching
+      // Poll for requirements update with retries
+      const pollRequirements = async (attempt = 0) => {
+        const maxAttempts = 8;
+        const delay = 2000; // 2 seconds between attempts
+        
+        if (attempt >= maxAttempts) {
+          // Final attempt
+          refetchRequirements();
+          return;
+        }
+        
+        try {
+          // Wait before checking
+          await new Promise(resolve => setTimeout(resolve, delay));
+          
+          // Refetch requirements
+          const result = await refetchRequirements();
+          
+          if (result?.data) {
+            const req = result.data;
+            const expectedMinAge = variables.minAge;
+            const expectedAccredited = variables.requireAccredited;
+            const expectedJurisdictionCount = variables.allowedJurisdictions?.length || 0;
+            
+            // Check if requirements match what we just set
+            if (
+              Number(req.minAge) === expectedMinAge &&
+              req.requireAccredited === expectedAccredited &&
+              (req.allowedJurisdictions?.length || 0) === expectedJurisdictionCount
+            ) {
+              // Requirements updated successfully - stop polling
+              return;
+            }
+          }
+          
+          // If not updated yet, try again
+          if (attempt < maxAttempts - 1) {
+            await pollRequirements(attempt + 1);
+          } else {
+            // Last attempt
+            refetchRequirements();
+          }
+        } catch (err) {
+          console.error('Error polling requirements:', err);
+          // Retry on error
+          if (attempt < maxAttempts - 1) {
+            await pollRequirements(attempt + 1);
+          } else {
+            refetchRequirements();
+          }
+        }
+      };
+      
+      // Start polling after initial delay
+      setTimeout(() => {
+        pollRequirements(0);
+      }, 1000);
     },
     onError: (err) => {
       // Extract detailed error message
       let errorMessage = err.message;
+      
+      // Handle blockchain revert errors
+      if (err.reason || err.data) {
+        if (err.reason) {
+          errorMessage = `Transaction failed: ${err.reason}`;
+        }
+      }
+      
+      // Handle API errors (fallback)
       if (err.response?.data?.error) {
         const errorData = err.response.data.error;
         if (errorData.validationErrors) {
           errorMessage = `Validation errors: ${errorData.validationErrors.map(e => `${e.field}: ${e.message}`).join(', ')}`;
-        } else if (errorData.message) {
+        } else if (errorData.message && !errorMessage.includes('Transaction failed')) {
           errorMessage = errorData.message;
         }
       }
+      
       setError(errorMessage);
       setSuccess(null);
       console.error('Set requirements error:', err);
@@ -117,17 +212,14 @@ function ProtocolDashboard() {
     setError(null);
     setSuccess(null);
 
-    // Convert hash values for the API
-    // Strategy: 
-    // 1. If hash is a small number (from manual input), send as number
-    // 2. If hash is a large string (from jurisdiction conversion), try sending as hex string
-    //    (backend validator accepts hex strings, and backend can convert to BigInt)
-    const jurisdictionsForAPI = allowedJurisdictions.map((hash) => {
+    // Convert hash values to strings for contract call
+    // The contract client will handle BigInt conversion
+    const jurisdictionsForContract = allowedJurisdictions.map((hash) => {
       const hashStr = String(hash);
       
       // Check if it's already a hex string
       if (/^0x[a-fA-F0-9]+$/.test(hashStr)) {
-        return hashStr; // Send hex as-is
+        return hashStr; // Keep hex as-is, contract will convert
       }
       
       // Verify it's a valid numeric string
@@ -135,27 +227,8 @@ function ProtocolDashboard() {
         throw new Error(`Invalid jurisdiction hash format: ${hashStr}`);
       }
       
-      // Try to convert to number if it's within safe integer range
-      const num = Number(hashStr);
-      
-      // If it's a safe integer, send as number (this works with current backend!)
-      if (Number.isSafeInteger(num)) {
-        return num;
-      }
-      
-      // For very large values, convert back to hex format
-      // This ensures the backend validator accepts it (hex strings are accepted)
-      // The backend will convert hex to BigInt
-      try {
-        const bigIntValue = BigInt(hashStr);
-        const hexValue = '0x' + bigIntValue.toString(16);
-        console.log(`Converting large hash to hex: ${hashStr.substring(0, 20)}... → ${hexValue.substring(0, 30)}...`);
-        return hexValue;
-      } catch (err) {
-        // Fallback: send as string and hope backend accepts it
-        console.warn('Could not convert to hex, sending as string:', err);
-        return hashStr;
-      }
+      // Return as string - contract client will convert to BigInt
+      return hashStr;
     });
 
     // Ensure protocolAddress is valid
@@ -174,7 +247,7 @@ function ProtocolDashboard() {
     const requestData = {
       protocolAddress,
       minAge: parseInt(minAge, 10),
-      allowedJurisdictions: jurisdictionsForAPI,
+      allowedJurisdictions: jurisdictionsForContract,
       requireAccredited,
       // Store original and hashed for display after success
       _originalJurisdictions: originalJurisdictionList,

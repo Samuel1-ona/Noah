@@ -89,7 +89,33 @@ function UserDashboard() {
   // Verify proof mutation
   const verifyProofMutation = useMutation({
     mutationFn: async (data) => {
-      return protocolService.verifyAccess(data);
+      // Get signer from wallet
+      const provider = walletService.getProvider();
+      if (!provider) {
+        throw new Error('Wallet not connected');
+      }
+      
+      const signer = await provider.getSigner();
+      
+      // Call contract directly using user's wallet
+      // Note: The contract uses msg.sender as the protocol address,
+      // so the user must have set requirements for their own address first
+      const result = await contractClient.verifyAndGrantAccess(
+        signer,
+        data.proof,
+        data.publicSignals,
+        data.credentialHash,
+        data.userAddress
+      );
+      
+      // Return in same format as API response
+      return {
+        transactionHash: result.transactionHash,
+        protocolAddress: data.protocolAddress,
+        userAddress: data.userAddress,
+        credentialHash: data.credentialHash,
+        message: 'Access granted successfully',
+      };
     },
     onSuccess: (data) => {
       setSuccess(`Access granted! Transaction: ${data.transactionHash}`);
