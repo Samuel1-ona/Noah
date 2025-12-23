@@ -33,18 +33,7 @@ function IssuerDashboard() {
   const [userAddress, setUserAddress] = useState('');
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
-
-  const account = walletService.getAccount();
-
-  // Initialize contract client
-  React.useEffect(() => {
-    if (account) {
-      const provider = walletService.getProvider();
-      if (provider) {
-        contractClient.initialize(provider);
-      }
-    }
-  }, [account]);
+  const [account, setAccount] = useState(() => walletService.getAccount());
 
   // Get issuer's credentials
   const { data: issuerCredentials, isLoading: loadingIssuerCredentials, refetch: refetchIssuerCredentials } = useQuery({
@@ -52,6 +41,38 @@ function IssuerDashboard() {
     queryFn: () => issuerService.getIssuerCredentials(account),
     enabled: !!account,
   });
+
+  // Monitor account changes and update screen when wallet connects
+  React.useEffect(() => {
+    // Set initial account state on mount
+    const currentAccount = walletService.getAccount();
+    if (currentAccount !== account) {
+      setAccount(currentAccount);
+    }
+
+    // Subscribe to wallet state changes
+    const unsubscribe = walletService.onStateChange(({ account: newAccount, connected }) => {
+      // Update account state to trigger re-render
+      setAccount(newAccount);
+      
+      // When wallet connects or account changes, refetch credentials
+      if (connected && newAccount) {
+        // Refetch credentials to update the screen
+        refetchIssuerCredentials();
+      } else if (!connected && !newAccount) {
+        // Wallet disconnected - clear state
+        setError(null);
+        setSuccess(null);
+        setCredentialHash('');
+        setUserAddress('');
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty deps - only run on mount/unmount
 
   // Register credential mutation (uses backend API for gasless transactions)
   const registerMutation = useMutation({

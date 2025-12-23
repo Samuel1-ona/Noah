@@ -36,8 +36,8 @@ function ProtocolDashboard() {
   const [originalJurisdictions, setOriginalJurisdictions] = useState(null);
   const [requirementsHash, setRequirementsHash] = useState(null);
   const [copiedIndex, setCopiedIndex] = useState(null);
+  const [account, setAccount] = useState(() => walletService.getAccount());
 
-  const account = walletService.getAccount();
   const protocolAddress = account || CONTRACT_ADDRESSES.ProtocolAccessControl;
 
   // Get current requirements
@@ -46,6 +46,39 @@ function ProtocolDashboard() {
     queryFn: () => protocolService.getRequirements(protocolAddress),
     enabled: !!protocolAddress && protocolAddress.length === 42,
   });
+
+  // Monitor account changes and update screen when wallet connects
+  React.useEffect(() => {
+    // Set initial account state
+    const currentAccount = walletService.getAccount();
+    if (currentAccount !== account) {
+      setAccount(currentAccount);
+    }
+
+    // Subscribe to wallet state changes
+    const unsubscribe = walletService.onStateChange(({ account: newAccount, connected }) => {
+      // Update account state to trigger re-render
+      setAccount(newAccount);
+      
+      // When wallet connects or account changes, refetch requirements
+      if (connected && newAccount) {
+        // Update protocol address if it was using fallback
+        const newProtocolAddress = newAccount || CONTRACT_ADDRESSES.ProtocolAccessControl;
+        // Refetch requirements to update the screen
+        if (newProtocolAddress && newProtocolAddress.length === 42) {
+          refetchRequirements();
+        }
+      } else if (!connected && !newAccount) {
+        // Wallet disconnected - clear state
+        setError(null);
+        setSuccess(null);
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [account, refetchRequirements]);
 
   // Set requirements mutation
   const setRequirementsMutation = useMutation({
