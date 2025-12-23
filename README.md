@@ -5,6 +5,7 @@
 ## Table of Contents
 
 - [Overview](#overview)
+- [Use Cases](#use-cases)
 - [Zero-Knowledge Proof Mathematics](#zero-knowledge-proof-mathematics)
 - [ZK Circuit Implementation](#zk-circuit-implementation)
 - [Architecture](#architecture)
@@ -32,6 +33,105 @@ This system enables **selective disclosure** of KYC credentials using zero-knowl
 - 🚀 **On-Chain Verification**: Fast, gas-efficient proof verification
 - 🔐 **Revocable Credentials**: Issuers can revoke credentials when needed
 - 🏛️ **Multi-Protocol Support**: Each DeFi protocol sets its own requirements
+
+## Use Cases
+
+### Primary Use Case
+
+NOAH enables DeFi protocols to verify user eligibility for compliance (KYC/AML) without exposing personal data. Users prove they meet requirements (age, jurisdiction, accreditation) while keeping their actual data private.
+
+### Specific Use Cases
+
+#### 1. DeFi Protocol Compliance
+
+**Problem**: Protocols need to verify user eligibility (age, location, accreditation) but want to protect user privacy.
+
+**Solution**: Users generate ZK proofs showing they meet requirements without revealing exact values.
+
+**Example**: A lending protocol requires users to be 18+ and from allowed jurisdictions. Users prove eligibility without sharing their exact age or location.
+
+#### 2. Age-Restricted Services
+
+**Use Case**: Services requiring minimum age (e.g., 18+, 21+).
+
+**Example**: A DeFi protocol restricts access to users 21+ in certain jurisdictions. Users prove they meet both without revealing exact age or location.
+
+#### 3. Jurisdiction-Based Access Control
+
+**Use Case**: Protocols that must restrict access by jurisdiction (e.g., US-only, EU-compliant).
+
+**Example**: A protocol allows only users from specific countries. Users prove membership in the allowed set without revealing their exact jurisdiction.
+
+#### 4. Accredited Investor Verification
+
+**Use Case**: Protocols requiring accredited investor status for certain products.
+
+**Example**: An investment platform requires accredited status. Users prove they are accredited without revealing other personal details.
+
+#### 5. Multi-Protocol Credential Reuse
+
+**Use Case**: Users can reuse the same credential across multiple protocols.
+
+**Benefit**: One KYC credential can be used across multiple DeFi protocols, each with different requirements.
+
+#### 6. Privacy-Preserving Compliance
+
+**Use Case**: Organizations that need to demonstrate compliance without exposing user data.
+
+**Benefit**: Maintains regulatory compliance while protecting user privacy.
+
+### Target Users
+
+#### 1. End Users (DeFi Participants)
+- Want to access DeFi protocols while maintaining privacy
+- Need to prove eligibility without exposing personal information
+- Want to reuse credentials across multiple protocols
+
+#### 2. DeFi Protocols
+- Need to verify user eligibility for compliance
+- Want to protect user privacy
+- Need flexible, customizable requirements
+- Want on-chain verification for transparency
+
+#### 3. KYC Issuers
+- Organizations that issue and verify credentials
+- Need to manage credential lifecycle (issue, revoke)
+- Want to maintain trust and compliance
+
+### Real-World Scenarios
+
+#### Scenario 1: Decentralized Exchange (DEX)
+
+**Requirement**: Users must be 18+ and from allowed jurisdictions.
+
+**Flow**: User generates a ZK proof showing they meet requirements → DEX verifies on-chain → Access granted.
+
+#### Scenario 2: Lending Protocol
+
+**Requirement**: Users must be accredited investors for certain products.
+
+**Flow**: User proves accredited status → Protocol verifies → Access to premium products.
+
+#### Scenario 3: Cross-Border DeFi Access
+
+**Requirement**: Protocol allows users from specific countries.
+
+**Flow**: User proves jurisdiction membership → Protocol verifies → Access granted without revealing exact location.
+
+### Benefits
+
+1. **Privacy**: Personal data never leaves the user's device
+2. **Compliance**: Protocols can verify eligibility on-chain
+3. **Flexibility**: Each protocol sets its own requirements
+4. **Efficiency**: On-chain verification is fast and gas-efficient
+5. **Security**: Credentials are revocable and tamper-proof
+6. **Reusability**: One credential works across multiple protocols
+
+### Value Proposition
+
+NOAH bridges privacy and compliance in DeFi: users maintain privacy while protocols meet regulatory requirements. It enables **selective disclosure**—users prove what's needed, nothing more.
+
+This is especially valuable in DeFi, where privacy and compliance are both important.
 
 ## Zero-Knowledge Proof Mathematics
 
