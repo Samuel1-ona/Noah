@@ -7,14 +7,16 @@ function WalletButton() {
   const [isConnecting, setIsConnecting] = useState(false);
 
   useEffect(() => {
-    // Check if already connected
+    // Check if already connected (including restored connections from constructor)
     if (walletService.isConnected()) {
-      setAccount(walletService.getAccount());
+      const currentAccount = walletService.getAccount();
+      setAccount(currentAccount);
     }
 
     // Subscribe to wallet state changes
     const unsubscribe = walletService.onStateChange(({ account: newAccount }) => {
       setAccount(newAccount);
+      // Note: Page updates are handled by useWalletMonitor hook in each dashboard
     });
 
     return () => {

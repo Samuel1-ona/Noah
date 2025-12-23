@@ -19,7 +19,6 @@ import {
 import { useQuery, useMutation } from '@tanstack/react-query';
 import walletService from '../services/walletService';
 import { proofService, protocolService, userService } from '../services/apiClient';
-import contractClient from '../services/contractClient';
 import { jurisdictionStringToHash } from '../utils/jurisdiction';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 
@@ -37,17 +36,7 @@ function UserDashboard() {
     accredited: 0,
   });
 
-  const account = walletService.getAccount();
-
-  // Initialize contract client
-  React.useEffect(() => {
-    if (account) {
-      const provider = walletService.getProvider();
-      if (provider) {
-        contractClient.initialize(provider);
-      }
-    }
-  }, [account]);
+  const [account, setAccount] = useState(() => walletService.getAccount());
 
   // Get user's credentials
   const { data: userCredentials, isLoading: loadingCredentials, refetch: refetchCredentials } = useQuery({
@@ -57,18 +46,52 @@ function UserDashboard() {
   });
 
   // Get protocol requirements
-  const { data: requirements, isLoading: loadingRequirements } = useQuery({
+  const { data: requirements, isLoading: loadingRequirements, refetch: refetchRequirements } = useQuery({
     queryKey: ['protocol-requirements', protocolAddress],
     queryFn: () => protocolService.getRequirements(protocolAddress),
     enabled: !!protocolAddress && protocolAddress.length === 42,
   });
 
   // Check access status
-  const { data: accessStatus } = useQuery({
+  const { data: accessStatus, refetch: refetchAccessStatus } = useQuery({
     queryKey: ['access-status', protocolAddress, account],
     queryFn: () => userService.checkAccess(protocolAddress, account),
     enabled: !!protocolAddress && !!account && protocolAddress.length === 42,
   });
+
+  // Monitor account changes and update screen when wallet connects
+  React.useEffect(() => {
+    // Set initial account state
+    const currentAccount = walletService.getAccount();
+    if (currentAccount !== account) {
+      setAccount(currentAccount);
+    }
+
+    // Subscribe to wallet state changes
+    const unsubscribe = walletService.onStateChange(({ account: newAccount, connected }) => {
+      // Update account state to trigger re-render
+      setAccount(newAccount);
+      
+      // When wallet connects or account changes, refetch all queries
+      if (connected && newAccount) {
+        // Refetch all queries to update the screen
+        refetchCredentials();
+        if (protocolAddress && protocolAddress.length === 42) {
+          refetchRequirements();
+          refetchAccessStatus();
+        }
+      } else if (!connected && !newAccount) {
+        // Wallet disconnected - clear state
+        setError(null);
+        setSuccess(null);
+        setProofResult(null);
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [account, protocolAddress, refetchCredentials, refetchRequirements, refetchAccessStatus]);
 
   // Generate proof mutation
   const generateProofMutation = useMutation({

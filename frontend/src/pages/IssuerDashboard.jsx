@@ -25,7 +25,6 @@ import {
 import { useMutation, useQuery } from '@tanstack/react-query';
 import walletService from '../services/walletService';
 import { issuerService } from '../services/apiClient';
-import contractClient from '../services/contractClient';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 
 function IssuerDashboard() {
@@ -33,18 +32,7 @@ function IssuerDashboard() {
   const [userAddress, setUserAddress] = useState('');
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
-
-  const account = walletService.getAccount();
-
-  // Initialize contract client
-  React.useEffect(() => {
-    if (account) {
-      const provider = walletService.getProvider();
-      if (provider) {
-        contractClient.initialize(provider);
-      }
-    }
-  }, [account]);
+  const [account, setAccount] = useState(() => walletService.getAccount());
 
   // Get issuer's credentials
   const { data: issuerCredentials, isLoading: loadingIssuerCredentials, refetch: refetchIssuerCredentials } = useQuery({
@@ -52,6 +40,37 @@ function IssuerDashboard() {
     queryFn: () => issuerService.getIssuerCredentials(account),
     enabled: !!account,
   });
+
+  // Monitor account changes and update screen when wallet connects
+  React.useEffect(() => {
+    // Set initial account state
+    const currentAccount = walletService.getAccount();
+    if (currentAccount !== account) {
+      setAccount(currentAccount);
+    }
+
+    // Subscribe to wallet state changes
+    const unsubscribe = walletService.onStateChange(({ account: newAccount, connected }) => {
+      // Update account state to trigger re-render
+      setAccount(newAccount);
+      
+      // When wallet connects or account changes, refetch credentials
+      if (connected && newAccount) {
+        // Refetch credentials to update the screen
+        refetchIssuerCredentials();
+      } else if (!connected && !newAccount) {
+        // Wallet disconnected - clear state
+        setError(null);
+        setSuccess(null);
+        setCredentialHash('');
+        setUserAddress('');
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [account, refetchIssuerCredentials]);
 
   // Register credential mutation
   const registerMutation = useMutation({

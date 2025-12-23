@@ -12,6 +12,10 @@ class WalletService {
     this.account = null;
     this.chainId = null;
     this.listeners = new Set();
+    this.STORAGE_KEY = 'noah_wallet_connected';
+    
+    // Try to restore connection on initialization
+    this.restoreConnection();
   }
 
   /**
@@ -96,7 +100,10 @@ class WalletService {
       // Set up event listeners
       this.setupEventListeners();
 
-      this.notifyListeners({ account: this.account, chainId: this.chainId });
+      // Save connection state to localStorage
+      this.saveConnectionState();
+
+      this.notifyListeners({ account: this.account, chainId: this.chainId, connected: true });
 
       return {
         account: this.account,
@@ -119,7 +126,8 @@ class WalletService {
     this.signer = null;
     this.chainId = null;
     this.removeEventListeners();
-    this.notifyListeners({ account: null, chainId: null });
+    this.clearConnectionState();
+    this.notifyListeners({ account: null, chainId: null, connected: false });
   }
 
   /**
@@ -270,23 +278,35 @@ class WalletService {
     const ethereum = this.getMetaMaskProvider();
     if (!ethereum) return;
 
+    // Remove existing listeners first to avoid duplicates
+    this.removeEventListeners();
+
     // Handle account changes in MetaMask
     ethereum.on('accountsChanged', (accounts) => {
       if (accounts.length === 0) {
         this.disconnect();
       } else {
         this.account = accounts[0];
+        // Update provider and signer for new account
+        if (ethereum) {
+          this.provider = new ethers.BrowserProvider(ethereum);
+          this.provider.getSigner().then(signer => {
+            this.signer = signer;
+          });
+        }
+        this.saveConnectionState();
         this.notifyListeners({ account: this.account, chainId: this.chainId });
       }
     });
 
     // Handle chain changes in MetaMask
-    ethereum.on('chainChanged', (chainId) => {
+    ethereum.on('chainChanged', async (chainId) => {
       this.chainId = parseInt(chainId, 16);
       if (this.provider && ethereum) {
         this.provider = new ethers.BrowserProvider(ethereum);
-        this.signer = this.provider.getSigner();
+        this.signer = await this.provider.getSigner();
       }
+      this.saveConnectionState();
       this.notifyListeners({ account: this.account, chainId: this.chainId });
     });
 
@@ -306,6 +326,93 @@ class WalletService {
     ethereum.removeAllListeners('accountsChanged');
     ethereum.removeAllListeners('chainChanged');
     ethereum.removeAllListeners('disconnect');
+  }
+
+  /**
+   * Save connection state to localStorage
+   */
+  saveConnectionState() {
+    if (typeof window === 'undefined') return;
+    try {
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify({
+        account: this.account,
+        chainId: this.chainId,
+        timestamp: Date.now(),
+      }));
+    } catch (error) {
+      console.warn('Failed to save wallet connection state:', error);
+    }
+  }
+
+  /**
+   * Clear connection state from localStorage
+   */
+  clearConnectionState() {
+    if (typeof window === 'undefined') return;
+    try {
+      localStorage.removeItem(this.STORAGE_KEY);
+    } catch (error) {
+      console.warn('Failed to clear wallet connection state:', error);
+    }
+  }
+
+  /**
+   * Restore connection from localStorage
+   * This will attempt to reconnect if the wallet was previously connected
+   */
+  async restoreConnection() {
+    if (typeof window === 'undefined') return;
+    
+    try {
+      const saved = localStorage.getItem(this.STORAGE_KEY);
+      if (!saved) return;
+
+      const { account, chainId, timestamp } = JSON.parse(saved);
+      
+      // Check if saved state is recent (within 24 hours)
+      const isRecent = timestamp && (Date.now() - timestamp) < 24 * 60 * 60 * 1000;
+      if (!isRecent) {
+        this.clearConnectionState();
+        return;
+      }
+
+      // Check if MetaMask is available
+      if (!this.isMetaMaskInstalled()) {
+        this.clearConnectionState();
+        return;
+      }
+
+      const ethereum = this.getMetaMaskProvider();
+      if (!ethereum) {
+        this.clearConnectionState();
+        return;
+      }
+
+      // Check if the account is still connected in MetaMask
+      const accounts = await ethereum.request({ method: 'eth_accounts' });
+      if (accounts.length === 0 || accounts[0] !== account) {
+        this.clearConnectionState();
+        return;
+      }
+
+      // Restore connection
+      this.account = accounts[0];
+      this.provider = new ethers.BrowserProvider(ethereum);
+      this.signer = await this.provider.getSigner();
+      
+      // Get current chain ID
+      const network = await this.provider.getNetwork();
+      this.chainId = Number(network.chainId);
+
+      // Set up event listeners
+      this.setupEventListeners();
+
+      // Notify listeners of restored connection
+      this.notifyListeners({ account: this.account, chainId: this.chainId, connected: true, restored: true });
+    } catch (error) {
+      console.warn('Failed to restore wallet connection:', error);
+      this.clearConnectionState();
+    }
   }
 }
 
