@@ -15,6 +15,7 @@
 - [User Guide: Accessing DeFi Protocols](#user-guide-accessing-defi-protocols)
 - [Issuer Guide: Managing Credentials](#issuer-guide-managing-credentials)
 - [Getting Started](#getting-started)
+  - [SDK Examples](#sdk-examples)
 - [Development](#development)
 - [API Reference](#api-reference)
 - [Security Considerations](#security-considerations)
@@ -2570,6 +2571,29 @@ go run cmd/prove/main.go build/test-input.json
 ```
 
 3. **Proof saved to** `build/proof.json`
+
+### SDK Examples
+
+For developers looking to integrate NOAH into their applications, we provide comprehensive example projects demonstrating both **end-to-end user flows** and **DeFi protocol integration**.
+
+**📚 [View SDK Examples Documentation →](examples/README.md)**
+
+The examples include:
+- **React Example**: Client-side integration with React hooks
+- **Next.js Example**: Full-stack TypeScript application
+
+Each example demonstrates:
+- ✅ Wallet connection and management
+- ✅ Protocol requirement setting and verification
+- ✅ User proof generation and access verification
+- ✅ Issuer credential management
+- ✅ Complete integration patterns
+
+See the [SDK Examples README](examples/README.md) for:
+- Step-by-step setup instructions
+- Complete use case examples for end users and DeFi protocols
+- API reference and integration guides
+- Troubleshooting tips
 
 ## Development
 
