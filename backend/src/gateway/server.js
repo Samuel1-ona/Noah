@@ -287,7 +287,49 @@ v1RouterNoPrefix.use('/issuer', createProxyMiddleware({
 v1RouterNoPrefix.use('/user', createProxyMiddleware({
   target: `http://localhost:${config.ports.user}`,
   changeOrigin: true,
-  pathRewrite: (path, req) => req.path || path.replace(/^\/user/, ''),
+  pathRewrite: (path, req) => {
+    // #region agent log
+    logger.info('Path rewrite (User - no prefix) - INPUT', { 
+      pathParam: path,
+      originalPath: path, 
+      reqPath: req.path,
+      reqUrl: req.url,
+      originalUrl: req.originalUrl
+    });
+    // #endregion
+    
+    // Express Router strips '/user' from req.path before middleware runs
+    let rewritten = req.path;
+    
+    // Fallback: if req.path doesn't exist or still has /user, try path parameter
+    if (!rewritten || rewritten.startsWith('/user')) {
+      rewritten = path.replace(/^\/user/, '');
+    }
+    
+    // Ensure path starts with /
+    if (rewritten && !rewritten.startsWith('/')) {
+      rewritten = '/' + rewritten;
+    }
+    
+    // #region agent log
+    logger.info('Path rewrite (User - no prefix) - OUTPUT', { 
+      originalPath: path, 
+      reqPath: req.path, 
+      rewritten 
+    });
+    // #endregion
+    
+    return rewritten || '/';
+  },
+  onProxyReq: (proxyReq, req, res) => {
+    // #region agent log
+    logger.info('Proxy request (User - no prefix)', { 
+      originalUrl: req.originalUrl,
+      proxyPath: proxyReq.path,
+      method: req.method 
+    });
+    // #endregion
+  },
 }));
 v1RouterNoPrefix.use('/protocol', createProxyMiddleware({
   target: `http://localhost:${config.ports.protocol}`,
