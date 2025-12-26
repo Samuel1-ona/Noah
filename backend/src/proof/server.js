@@ -46,15 +46,86 @@ app.post('/generate',
     // #endregion
     const { credential, requirements } = req.body;
 
+    // #region agent log
+    logger.info('Before createProofInput', {
+      credentialAge: credential?.age,
+      credentialJurisdiction: credential?.jurisdiction,
+      credentialJurisdictionType: typeof credential?.jurisdiction,
+      requirementsAllowedJurisdictions: requirements?.allowedJurisdictions,
+    });
+    // #endregion
+
     // Create proof input
-    const proofInput = createProofInput(credential, requirements);
+    let proofInput;
+    try {
+      proofInput = createProofInput(credential, requirements);
+      // #region agent log
+      logger.info('After createProofInput', {
+        proofInputKeys: Object.keys(proofInput),
+        actualAge: proofInput.actualAge,
+        actualJurisdiction: proofInput.actualJurisdiction,
+        allowedJurisdictionsLength: proofInput.allowedJurisdictions?.length,
+      });
+      // #endregion
+    } catch (error) {
+      // #region agent log
+      logger.error('Error in createProofInput', {
+        error: error.message,
+        stack: error.stack,
+        credential,
+        requirements,
+      });
+      // #endregion
+      throw error;
+    }
 
     // Generate proof
     logger.info('Generating proof', { credentialHash: credential.credentialHash });
-    const proofData = await generateProof(proofInput);
+    let proofData;
+    try {
+      proofData = await generateProof(proofInput);
+      // #region agent log
+      logger.info('After generateProof', {
+        hasProof: !!proofData.proof,
+        hasPublicInputs: !!proofData.publicInputs,
+        publicInputsLength: proofData.publicInputs?.length,
+      });
+      // #endregion
+    } catch (error) {
+      // #region agent log
+      logger.error('Error in generateProof', {
+        error: error.message,
+        stack: error.stack,
+        proofInput,
+      });
+      // #endregion
+      throw error;
+    }
 
     // Format for on-chain submission (pass original input and credential hash to reconstruct public signals)
-    const formattedProof = formatProofForOnChain(proofData, proofInput, credential.credentialHash);
+    let formattedProof;
+    try {
+      formattedProof = formatProofForOnChain(proofData, proofInput, credential.credentialHash);
+      // #region agent log
+      logger.info('After formatProofForOnChain', {
+        hasFormattedProof: !!formattedProof,
+        hasA: !!formattedProof.a,
+        hasB: !!formattedProof.b,
+        hasC: !!formattedProof.c,
+      });
+      // #endregion
+    } catch (error) {
+      // #region agent log
+      logger.error('Error in formatProofForOnChain', {
+        error: error.message,
+        stack: error.stack,
+        proofData,
+        proofInput,
+        credentialHash: credential.credentialHash,
+      });
+      // #endregion
+      throw error;
+    }
 
     // Store proof in database
     if (proofDB) {

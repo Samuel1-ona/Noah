@@ -1,6 +1,6 @@
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import { writeFileSync, readFileSync, unlinkSync } from 'fs';
+import { writeFileSync, readFileSync, unlinkSync, appendFileSync, existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
@@ -16,8 +16,46 @@ const __dirname = dirname(__filename);
  */
 export async function generateProof(input) {
   try {
+    // #region agent log
+    const logPath = '/Users/machine/Documents/Pyp/.cursor/debug.log';
+    try {
+      appendFileSync(logPath, JSON.stringify({
+        location: 'proof-generator.js:17',
+        message: 'generateProof called',
+        data: {
+          inputKeys: Object.keys(input),
+          actualAge: input.actualAge,
+          actualJurisdiction: input.actualJurisdiction,
+          allowedJurisdictionsLength: input.allowedJurisdictions?.length,
+        },
+        timestamp: Date.now(),
+        sessionId: 'debug-session',
+        runId: 'pre-fix',
+        hypothesisId: 'A'
+      }) + '\n');
+    } catch (logError) {}
+    // #endregion
+
     // Create temporary input file
     const inputPath = join(__dirname, '../../../build/proof-input-temp.json');
+    
+    // #region agent log
+    try {
+      const buildDir = join(__dirname, '../../../build');
+      if (!existsSync(buildDir)) {
+        mkdirSync(buildDir, { recursive: true });
+      }
+      appendFileSync(logPath, JSON.stringify({
+        location: 'proof-generator.js:30',
+        message: 'Build directory checked',
+        data: { buildDir, inputPath, buildDirExists: existsSync(buildDir) },
+        timestamp: Date.now(),
+        sessionId: 'debug-session',
+        runId: 'pre-fix',
+        hypothesisId: 'B'
+      }) + '\n');
+    } catch (logError) {}
+    // #endregion
     // Use a custom replacer to ensure large numbers (like credentialHash) are written correctly
     // Go can parse JSON numbers as int64, but we need to avoid scientific notation
     // CRITICAL: For BigInt values that exceed JavaScript's safe integer precision,
@@ -69,10 +107,56 @@ export async function generateProof(input) {
     const projectRoot = join(__dirname, '../../..');
     const provePath = join(projectRoot, 'prove');
 
+    // #region agent log
+    try {
+      const proveExists = existsSync(provePath);
+      appendFileSync(logPath, JSON.stringify({
+        location: 'proof-generator.js:75',
+        message: 'Before exec prove',
+        data: {
+          projectRoot,
+          provePath,
+          proveExists,
+          inputPath,
+          command: `${provePath} ${inputPath}`,
+        },
+        timestamp: Date.now(),
+        sessionId: 'debug-session',
+        runId: 'pre-fix',
+        hypothesisId: 'C'
+      }) + '\n');
+      if (!proveExists) {
+        throw new Error(`Prove binary not found at ${provePath}`);
+      }
+    } catch (logError) {
+      if (logError.message && logError.message.includes('Prove binary not found')) {
+        throw logError;
+      }
+    }
+    // #endregion
+
     // Run proof generation
     const { stdout, stderr } = await execAsync(`${provePath} ${inputPath}`, {
       cwd: projectRoot,
     });
+
+    // #region agent log
+    try {
+      appendFileSync(logPath, JSON.stringify({
+        location: 'proof-generator.js:95',
+        message: 'After exec prove',
+        data: {
+          stdoutLength: stdout?.length,
+          stderrLength: stderr?.length,
+          stderr: stderr,
+        },
+        timestamp: Date.now(),
+        sessionId: 'debug-session',
+        runId: 'pre-fix',
+        hypothesisId: 'D'
+      }) + '\n');
+    } catch (logError) {}
+    // #endregion
 
     if (stderr) {
       console.error('Proof generation stderr:', stderr);
@@ -80,6 +164,32 @@ export async function generateProof(input) {
 
     // Read generated proof
     const proofPath = join(projectRoot, 'build/proof.json');
+    
+    // #region agent log
+    try {
+      const proofExists = existsSync(proofPath);
+      appendFileSync(logPath, JSON.stringify({
+        location: 'proof-generator.js:110',
+        message: 'Before reading proof.json',
+        data: {
+          proofPath,
+          proofExists,
+        },
+        timestamp: Date.now(),
+        sessionId: 'debug-session',
+        runId: 'pre-fix',
+        hypothesisId: 'E'
+      }) + '\n');
+      if (!proofExists) {
+        throw new Error(`Proof file not found at ${proofPath}. Proof generation may have failed.`);
+      }
+    } catch (logError) {
+      if (logError.message && logError.message.includes('Proof file not found')) {
+        throw logError;
+      }
+    }
+    // #endregion
+    
     const proofData = JSON.parse(readFileSync(proofPath, 'utf8'));
 
     // Parse proof and publicInputs (they are stored as JSON strings/RawMessage)
@@ -102,6 +212,29 @@ export async function generateProof(input) {
       publicInputs,
     };
   } catch (error) {
+    // #region agent log
+    const logPath = '/Users/machine/Documents/Pyp/.cursor/debug.log';
+    try {
+      const logEntry = JSON.stringify({
+        location: 'proof-generator.js:104',
+        message: 'Error generating proof',
+        data: {
+          errorMessage: error.message,
+          errorStack: error.stack,
+          stdout: error.stdout,
+          stderr: error.stderr,
+          code: error.code,
+        },
+        timestamp: Date.now(),
+        sessionId: 'debug-session',
+        runId: 'pre-fix',
+        hypothesisId: 'A'
+      }) + '\n';
+      appendFileSync(logPath, logEntry);
+    } catch (logError) {
+      // Ignore logging errors
+    }
+    // #endregion
     console.error('Error generating proof:', error);
     throw new Error(`Proof generation failed: ${error.message}`);
   }
