@@ -29,6 +29,21 @@ app.post('/generate',
   authenticateToken,
   generateProofValidator,
   asyncHandler(async (req, res) => {
+    // #region agent log
+    logger.info('Proof generation request received', {
+      hasCredential: !!req.body.credential,
+      hasRequirements: !!req.body.requirements,
+      credentialKeys: req.body.credential ? Object.keys(req.body.credential) : [],
+      requirementsKeys: req.body.requirements ? Object.keys(req.body.requirements) : [],
+      credentialAge: req.body.credential?.age,
+      credentialJurisdiction: req.body.credential?.jurisdiction,
+      credentialJurisdictionType: typeof req.body.credential?.jurisdiction,
+      requirementsMinAge: req.body.requirements?.minAge,
+      requirementsAllowedJurisdictions: req.body.requirements?.allowedJurisdictions,
+      requirementsAllowedJurisdictionsType: Array.isArray(req.body.requirements?.allowedJurisdictions) ? 'array' : typeof req.body.requirements?.allowedJurisdictions,
+      requirementsRequireAccredited: req.body.requirements?.requireAccredited,
+    });
+    // #endregion
     const { credential, requirements } = req.body;
 
     // Create proof input

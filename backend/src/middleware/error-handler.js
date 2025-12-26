@@ -23,6 +23,15 @@ export const errorHandler = (err, req, res, next) => {
   if (err.name === 'ValidationError' || err.validationErrors) {
     statusCode = 400;
     message = err.message;
+    // #region agent log
+    errorLogger(err, req);
+    logger.error('Validation error details', {
+      validationErrors: err.validationErrors,
+      body: req.body,
+      method: req.method,
+      url: req.url
+    });
+    // #endregion
   }
 
   // JWT errors

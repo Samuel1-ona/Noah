@@ -223,6 +223,44 @@ export const generateProofValidator = [
     })
     .isBoolean()
     .withMessage('requirements.requireAccredited must be a boolean'),
+  body('requirements.allowedJurisdictions')
+    .isArray()
+    .withMessage('requirements.allowedJurisdictions must be an array')
+    .customSanitizer((value) => {
+      // Convert BigInt values to strings to avoid JSON serialization issues
+      if (Array.isArray(value)) {
+        return value.map(item => {
+          if (typeof item === 'bigint') {
+            return item.toString();
+          }
+          if (typeof item === 'string' && item.startsWith('0x')) {
+            // Convert hex string to number if it fits, otherwise keep as string
+            try {
+              const bigInt = BigInt(item);
+              if (bigInt <= BigInt(Number.MAX_SAFE_INTEGER)) {
+                return Number(bigInt);
+              }
+              return item;
+            } catch {
+              return item;
+            }
+          }
+          return item;
+        });
+      }
+      return value;
+    })
+    .custom((value) => {
+      // Allow empty array or array of numbers/strings
+      return Array.isArray(value) && value.every(item => 
+        typeof item === 'number' || typeof item === 'string' || typeof item === 'bigint'
+      );
+    })
+    .withMessage('requirements.allowedJurisdictions must be an array of numbers or strings'),
+  body('requirements.protocolAddress')
+    .optional()
+    .isString()
+    .withMessage('requirements.protocolAddress must be a string'),
   validate,
 ];
 
