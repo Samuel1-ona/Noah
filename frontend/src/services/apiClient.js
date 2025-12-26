@@ -11,7 +11,8 @@ const apiClient = axios.create({
 });
 
 // #region agent log
-if (typeof window !== 'undefined') {
+// Only log in development to avoid errors in production
+if (typeof window !== 'undefined' && import.meta.env.DEV) {
   fetch('http://127.0.0.1:7243/ingest/5ad0b50e-7025-45eb-bffd-1e5073177618',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'apiClient.js:11',message:'Axios instance created',data:{baseURL:apiClient.defaults.baseURL,API_BASE_URL},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'D'})}).catch(()=>{});
 }
 // #endregion
@@ -20,8 +21,11 @@ if (typeof window !== 'undefined') {
 apiClient.interceptors.request.use(
   (config) => {
     // #region agent log
-    const fullUrl = `${config.baseURL}${config.url}`;
-    fetch('http://127.0.0.1:7243/ingest/5ad0b50e-7025-45eb-bffd-1e5073177618',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'apiClient.js:16',message:'API request being made',data:{baseURL:config.baseURL,url:config.url,fullUrl,method:config.method},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'A'})}).catch(()=>{});
+    // Only log in development to avoid errors in production
+    if (import.meta.env.DEV) {
+      const fullUrl = `${config.baseURL}${config.url}`;
+      fetch('http://127.0.0.1:7243/ingest/5ad0b50e-7025-45eb-bffd-1e5073177618',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'apiClient.js:16',message:'API request being made',data:{baseURL:config.baseURL,url:config.url,fullUrl,method:config.method},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'A'})}).catch(()=>{});
+    }
     // #endregion
     // Add JWT token if available
     const token = localStorage.getItem('authToken');
@@ -40,8 +44,11 @@ apiClient.interceptors.response.use(
   (response) => response.data,
   (error) => {
     // #region agent log
-    const requestUrl = error.config ? `${error.config.baseURL}${error.config.url}` : 'unknown';
-    fetch('http://127.0.0.1:7243/ingest/5ad0b50e-7025-45eb-bffd-1e5073177618',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'apiClient.js:32',message:'API request error',data:{requestUrl,status:error.response?.status,statusText:error.response?.statusText,errorMessage:error.response?.data?.error?.message||error.message,responseData:error.response?.data},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'B'})}).catch(()=>{});
+    // Only log in development to avoid errors in production
+    if (import.meta.env.DEV) {
+      const requestUrl = error.config ? `${error.config.baseURL}${error.config.url}` : 'unknown';
+      fetch('http://127.0.0.1:7243/ingest/5ad0b50e-7025-45eb-bffd-1e5073177618',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'apiClient.js:32',message:'API request error',data:{requestUrl,status:error.response?.status,statusText:error.response?.statusText,errorMessage:error.response?.data?.error?.message||error.message,responseData:error.response?.data},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'B'})}).catch(()=>{});
+    }
     // #endregion
     // Preserve full error object for detailed error handling
     // For 404 errors, we want to preserve the error response data

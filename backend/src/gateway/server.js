@@ -381,7 +381,49 @@ v1RouterNoPrefix.use('/protocol', createProxyMiddleware({
 v1RouterNoPrefix.use('/proof', createProxyMiddleware({
   target: `http://localhost:${config.ports.proof}`,
   changeOrigin: true,
-  pathRewrite: (path, req) => req.path || path.replace(/^\/proof/, ''),
+  pathRewrite: (path, req) => {
+    // #region agent log
+    logger.info('Path rewrite (Proof - no prefix) - INPUT', { 
+      pathParam: path,
+      originalPath: path, 
+      reqPath: req.path,
+      reqUrl: req.url,
+      originalUrl: req.originalUrl
+    });
+    // #endregion
+    
+    // Express Router strips '/proof' from req.path before middleware runs
+    let rewritten = req.path;
+    
+    // Fallback: if req.path doesn't exist or still has /proof, try path parameter
+    if (!rewritten || rewritten.startsWith('/proof')) {
+      rewritten = path.replace(/^\/proof/, '');
+    }
+    
+    // Ensure path starts with /
+    if (rewritten && !rewritten.startsWith('/')) {
+      rewritten = '/' + rewritten;
+    }
+    
+    // #region agent log
+    logger.info('Path rewrite (Proof - no prefix) - OUTPUT', { 
+      originalPath: path, 
+      reqPath: req.path, 
+      rewritten 
+    });
+    // #endregion
+    
+    return rewritten || '/';
+  },
+  onProxyReq: (proxyReq, req, res) => {
+    // #region agent log
+    logger.info('Proxy request (Proof - no prefix)', { 
+      originalUrl: req.originalUrl,
+      proxyPath: proxyReq.path,
+      method: req.method 
+    });
+    // #endregion
+  },
 }));
 app.use(v1RouterNoPrefix);
 
