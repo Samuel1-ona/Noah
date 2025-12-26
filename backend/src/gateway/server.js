@@ -24,16 +24,47 @@ app.get('/api/v1/health', healthCheck);
 // API versioning - v1 routes
 const v1Router = express.Router();
 
+// Debug middleware to log all requests to v1Router
+v1Router.use((req, res, next) => {
+  // #region agent log
+  logger.info('v1Router request', { 
+    method: req.method,
+    originalUrl: req.originalUrl,
+    url: req.url,
+    path: req.path,
+    baseUrl: req.baseUrl
+  });
+  // #endregion
+  next();
+});
+
 // Proxy to Issuer Service
 v1Router.use('/issuer', createProxyMiddleware({
   target: `http://localhost:${config.ports.issuer}`,
   changeOrigin: true,
-  pathRewrite: { '^/issuer': '' },
+  pathRewrite: (path, req) => {
+    // #region agent log
+    logger.info('Path rewrite (Issuer)', { 
+      originalPath: path, 
+      originalUrl: req.originalUrl,
+      url: req.url,
+      path: req.path
+    });
+    // #endregion
+    // Remove '/issuer' prefix if present
+    const rewritten = path.replace(/^\/issuer/, '');
+    // #region agent log
+    logger.info('Path rewrite result (Issuer)', { original: path, rewritten });
+    // #endregion
+    return rewritten;
+  },
   onProxyReq: (proxyReq, req, res) => {
     // #region agent log
-    const originalPath = req.originalUrl || req.url;
-    const rewrittenPath = proxyReq.path;
-    logger.info('Proxy request (Issuer)', { originalPath, rewrittenPath, method: req.method });
+    logger.info('Proxy request (Issuer)', { 
+      originalUrl: req.originalUrl,
+      proxyPath: proxyReq.path,
+      method: req.method 
+    });
     // #endregion
   },
   onError: (err, req, res) => {
@@ -46,7 +77,7 @@ v1Router.use('/issuer', createProxyMiddleware({
 v1Router.use('/user', createProxyMiddleware({
   target: `http://localhost:${config.ports.user}`,
   changeOrigin: true,
-  pathRewrite: { '^/user': '' },
+  pathRewrite: (path) => path.replace(/^\/user/, ''),
   onError: (err, req, res) => {
     logger.error('Proxy error (User)', { error: err.message, url: req.url });
     res.status(503).json({ success: false, error: { message: 'User service unavailable' } });
@@ -57,7 +88,7 @@ v1Router.use('/user', createProxyMiddleware({
 v1Router.use('/protocol', createProxyMiddleware({
   target: `http://localhost:${config.ports.protocol}`,
   changeOrigin: true,
-  pathRewrite: { '^/protocol': '' },
+  pathRewrite: (path) => path.replace(/^\/protocol/, ''),
   onError: (err, req, res) => {
     logger.error('Proxy error (Protocol)', { error: err.message, url: req.url });
     res.status(503).json({ success: false, error: { message: 'Protocol service unavailable' } });
@@ -68,7 +99,7 @@ v1Router.use('/protocol', createProxyMiddleware({
 v1Router.use('/proof', createProxyMiddleware({
   target: `http://localhost:${config.ports.proof}`,
   changeOrigin: true,
-  pathRewrite: { '^/proof': '' },
+  pathRewrite: (path) => path.replace(/^\/proof/, ''),
   onError: (err, req, res) => {
     logger.error('Proxy error (Proof)', { error: err.message, url: req.url });
     res.status(503).json({ success: false, error: { message: 'Proof service unavailable' } });
