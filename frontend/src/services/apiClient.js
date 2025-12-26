@@ -10,6 +10,12 @@ const apiClient = axios.create({
   timeout: 30000, // 30 seconds
 });
 
+// #region agent log
+if (typeof window !== 'undefined') {
+  fetch('http://127.0.0.1:7243/ingest/5ad0b50e-7025-45eb-bffd-1e5073177618',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'apiClient.js:11',message:'Axios instance created',data:{baseURL:apiClient.defaults.baseURL,API_BASE_URL},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'D'})}).catch(()=>{});
+}
+// #endregion
+
 // Request interceptor for adding auth token
 apiClient.interceptors.request.use(
   (config) => {
@@ -92,7 +98,7 @@ export const issuerService = {
    * @returns {Promise<Array>} List of credentials issued by the issuer
    */
   getIssuerCredentials: (issuerAddress) => {
-    return apiClient.get(`/issuer/credentials/${issuerAddress}`);
+    return apiClient.get(`${API_ENDPOINTS.getIssuerCredentials}/${issuerAddress}`);
   },
 };
 
@@ -123,7 +129,7 @@ export const userService = {
    * @returns {Promise<Array>} List of credentials
    */
   getCredentials: (userAddress) => {
-    return apiClient.get(`/user/credentials/${userAddress}`);
+    return apiClient.get(`${API_ENDPOINTS.getCredentials}/${userAddress}`);
   },
 
   /**
@@ -132,7 +138,7 @@ export const userService = {
    * @returns {Promise<Object>} Credential data
    */
   getCredentialByHash: (credentialHash) => {
-    return apiClient.get(`/user/credential/${credentialHash}`);
+    return apiClient.get(`${API_ENDPOINTS.getCredentialByHash}/${credentialHash}`);
   },
 };
 

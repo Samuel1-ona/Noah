@@ -64,10 +64,13 @@ export const API_ENDPOINTS = {
   registerCredential: '/issuer/credential/register',
   revokeCredential: '/issuer/credential/revoke',
   checkCredential: '/issuer/credential/check',
+  getIssuerCredentials: '/issuer/credentials',
   
   // User endpoints
   getProtocolRequirements: '/user/protocol',
   checkAccess: '/user/access',
+  getCredentials: '/user/credentials',
+  getCredentialByHash: '/user/credential',
   
   // Protocol endpoints
   setRequirements: '/protocol/requirements/set',
