@@ -4,6 +4,7 @@ import { writeFileSync, readFileSync, unlinkSync, appendFileSync, existsSync, mk
 import { join } from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import { logger } from '../utils/logger.js';
 
 const execAsync = promisify(exec);
 const __filename = fileURLToPath(import.meta.url);
@@ -143,15 +144,94 @@ export async function generateProof(input) {
     } catch (logError) {}
     // #endregion
     
-    // Validate required files exist
-    if (!provingKeyExists) {
-      throw new Error(`Proving key not found at ${provingKeyPath}. Please run 'go run cmd/generate-verifier/main.go' to generate it`);
-    }
-    if (!ccsExists) {
-      throw new Error(`Constraint system not found at ${ccsPath}. Please run 'go run cmd/generate-verifier/main.go' to generate it`);
-    }
+    // Validate required files exist, auto-generate if missing
     if (!proveGoExists) {
       throw new Error(`Prove Go source not found at ${proveGoPath}`);
+    }
+    
+    // Auto-generate proving key and constraint system if they don't exist
+    if (!provingKeyExists || !ccsExists) {
+      // #region agent log
+      try {
+        appendFileSync(logPath, JSON.stringify({
+          location: 'proof-generator.js:147',
+          message: 'Auto-generating proving key and constraint system',
+          data: {
+            provingKeyExists,
+            ccsExists,
+            projectRoot,
+          },
+          timestamp: Date.now(),
+          sessionId: 'debug-session',
+          runId: 'pre-fix',
+          hypothesisId: 'F'
+        }) + '\n');
+      } catch (logError) {}
+      // #endregion
+      
+      const generateVerifierPath = join(projectRoot, 'cmd/generate-verifier/main.go');
+      if (!existsSync(generateVerifierPath)) {
+        throw new Error(`Generate verifier not found at ${generateVerifierPath}. Cannot auto-generate proving key.`);
+      }
+      
+      logger.info('Auto-generating proving key and constraint system...');
+      try {
+        const { stdout: genStdout, stderr: genStderr } = await execAsync(
+          `go run ${generateVerifierPath}`,
+          { cwd: projectRoot, timeout: 300000 } // 5 minute timeout for key generation
+        );
+        
+        // #region agent log
+        try {
+          appendFileSync(logPath, JSON.stringify({
+            location: 'proof-generator.js:175',
+            message: 'Key generation completed',
+            data: {
+              stdoutLength: genStdout?.length,
+              stderrLength: genStderr?.length,
+              stderr: genStderr,
+            },
+            timestamp: Date.now(),
+            sessionId: 'debug-session',
+            runId: 'pre-fix',
+            hypothesisId: 'G'
+          }) + '\n');
+        } catch (logError) {}
+        // #endregion
+        
+        if (genStderr) {
+          logger.warn('Key generation stderr:', genStderr);
+        }
+        
+        // Verify files were created
+        const newProvingKeyExists = existsSync(provingKeyPath);
+        const newCcsExists = existsSync(ccsPath);
+        
+        if (!newProvingKeyExists || !newCcsExists) {
+          throw new Error(`Failed to generate required files. Proving key: ${newProvingKeyExists}, Constraint system: ${newCcsExists}`);
+        }
+        
+        logger.info('Proving key and constraint system generated successfully');
+      } catch (genError) {
+        // #region agent log
+        try {
+          appendFileSync(logPath, JSON.stringify({
+            location: 'proof-generator.js:200',
+            message: 'Key generation failed',
+            data: {
+              error: genError.message,
+              stack: genError.stack,
+            },
+            timestamp: Date.now(),
+            sessionId: 'debug-session',
+            runId: 'pre-fix',
+            hypothesisId: 'H'
+          }) + '\n');
+        } catch (logError) {}
+        // #endregion
+        
+        throw new Error(`Failed to auto-generate proving key: ${genError.message}`);
+      }
     }
 
     // Use 'go run' instead of pre-built binary to avoid architecture mismatch issues
