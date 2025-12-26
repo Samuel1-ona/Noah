@@ -243,27 +243,107 @@ export async function generateProof(input) {
       }
     }
 
-    // Use 'go run' instead of pre-built binary to avoid architecture mismatch issues
-    // This works on any platform where Go is installed
-    // Try the binary first, but fall back to 'go run' if it doesn't exist or fails
-    // Note: We'll try the binary first, but if it fails with exec format error, we'll catch it and use go run
-    let command = `${provePath} ${inputPath}`;
-    let useGoRun = false;
-    
-    // Check if we should use go run instead
+    // Build binary for Linux if it doesn't exist (during deployment)
+    // This handles the case where the binary wasn't pre-built for the deployment architecture
     if (!proveExists) {
-      command = `go run ${proveGoPath} ${inputPath}`;
-      useGoRun = true;
+      // #region agent log
+      try {
+        appendFileSync(logPath, JSON.stringify({
+          location: 'proof-generator.js:246',
+          message: 'Binary not found, attempting to build',
+          data: {
+            provePath,
+            proveGoPath,
+            projectRoot,
+          },
+          timestamp: Date.now(),
+          sessionId: 'debug-session',
+          runId: 'pre-fix',
+          hypothesisId: 'I'
+        }) + '\n');
+      } catch (logError) {}
+      // #endregion
+      
+      logger.info('Prove binary not found, attempting to build for Linux...');
+      try {
+        // Build for Linux amd64 (Render's architecture)
+        const buildCommand = `GOOS=linux GOARCH=amd64 go build -o ${provePath} ${proveGoPath}`;
+        const { stdout: buildStdout, stderr: buildStderr } = await execAsync(buildCommand, {
+          cwd: projectRoot,
+          timeout: 300000, // 5 minute timeout
+        });
+        
+        // #region agent log
+        try {
+          appendFileSync(logPath, JSON.stringify({
+            location: 'proof-generator.js:265',
+            message: 'Binary build completed',
+            data: {
+              stdoutLength: buildStdout?.length,
+              stderrLength: buildStderr?.length,
+              stderr: buildStderr,
+              binaryExists: existsSync(provePath),
+            },
+            timestamp: Date.now(),
+            sessionId: 'debug-session',
+            runId: 'pre-fix',
+            hypothesisId: 'J'
+          }) + '\n');
+        } catch (logError) {}
+        // #endregion
+        
+        if (buildStderr) {
+          logger.warn('Binary build stderr:', buildStderr);
+        }
+        
+        // Verify binary was created
+        if (!existsSync(provePath)) {
+          throw new Error('Binary build completed but file was not created');
+        }
+        
+        logger.info('Prove binary built successfully');
+      } catch (buildError) {
+        // #region agent log
+        try {
+          appendFileSync(logPath, JSON.stringify({
+            location: 'proof-generator.js:285',
+            message: 'Binary build failed',
+            data: {
+              error: buildError.message,
+              stack: buildError.stack,
+            },
+            timestamp: Date.now(),
+            sessionId: 'debug-session',
+            runId: 'pre-fix',
+            hypothesisId: 'K'
+          }) + '\n');
+        } catch (logError) {}
+        // #endregion
+        
+        // Check if Go is not available
+        if (buildError.message && buildError.message.includes('go: not found')) {
+          throw new Error(
+            `Go is not installed on this system and the prove binary is missing. ` +
+            `Please build the binary for Linux locally with: ` +
+            `'GOOS=linux GOARCH=amd64 go build -o prove cmd/prove/main.go' ` +
+            `and commit it to the repository, or ensure Go is available during deployment.`
+          );
+        }
+        
+        throw new Error(`Failed to build prove binary: ${buildError.message}`);
+      }
     }
+    
+    // Use the binary (either pre-existing or newly built)
+    const command = `${provePath} ${inputPath}`;
     
     // #region agent log
     try {
       appendFileSync(logPath, JSON.stringify({
-        location: 'proof-generator.js:140',
+        location: 'proof-generator.js:310',
         message: 'Executing prove command',
         data: {
           command,
-          usingGoRun: useGoRun,
           cwd: projectRoot,
         },
         timestamp: Date.now(),
@@ -275,44 +355,9 @@ export async function generateProof(input) {
     // #endregion
 
     // Run proof generation
-    let stdout, stderr;
-    try {
-      const result = await execAsync(command, {
-        cwd: projectRoot,
-      });
-      stdout = result.stdout;
-      stderr = result.stderr;
-    } catch (execError) {
-      // If binary execution fails with "Exec format error", try using go run instead
-      if (execError.message && execError.message.includes('Exec format error') && !useGoRun) {
-        // #region agent log
-        try {
-          appendFileSync(logPath, JSON.stringify({
-            location: 'proof-generator.js:165',
-            message: 'Binary exec format error, falling back to go run',
-            data: {
-              originalCommand: command,
-              error: execError.message,
-            },
-            timestamp: Date.now(),
-            sessionId: 'debug-session',
-            runId: 'pre-fix',
-            hypothesisId: 'E'
-          }) + '\n');
-        } catch (logError) {}
-        // #endregion
-        
-        // Fall back to go run
-        const goRunCommand = `go run ${proveGoPath} ${inputPath}`;
-        const result = await execAsync(goRunCommand, {
-          cwd: projectRoot,
-        });
-        stdout = result.stdout;
-        stderr = result.stderr;
-      } else {
-        throw execError;
-      }
-    }
+    const { stdout, stderr } = await execAsync(command, {
+      cwd: projectRoot,
+    });
 
     // #region agent log
     try {

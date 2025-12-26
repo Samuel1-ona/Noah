@@ -25,6 +25,11 @@ build/*
 proof.json
 public.json
 
+# Prove binary - include Linux version for deployment
+!prove
+prove-macos
+prove-*
+
 # IDE
 .vscode/
 .idea/
