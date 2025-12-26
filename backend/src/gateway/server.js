@@ -12,15 +12,26 @@ const PORT = config.ports.gateway;
 
 // Middleware
 // CORS configuration - allow all origins for development and production
-app.use(cors({
-  origin: true, // Allow all origins (reflects the request origin)
-  credentials: true, // Allow credentials
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  exposedHeaders: ['Content-Length', 'X-Foo', 'X-Bar'],
+const corsOptions = {
+  origin: function (origin, callback) {
+    // #region agent log
+    logger.info('CORS origin check', { origin, hasOrigin: !!origin });
+    // #endregion
+    // Allow all origins (for development and production)
+    callback(null, true);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH', 'HEAD'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+  exposedHeaders: ['Content-Length'],
   preflightContinue: false,
   optionsSuccessStatus: 204
-}));
+};
+app.use(cors(corsOptions));
+
+// Explicitly handle OPTIONS requests for CORS preflight
+app.options('*', cors(corsOptions));
+
 // Don't parse JSON in gateway - let target services parse it
 // This allows the proxy to forward the raw body stream
 app.use(requestLogger);
