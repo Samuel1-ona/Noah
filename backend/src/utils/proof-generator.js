@@ -107,17 +107,18 @@ export async function generateProof(input) {
     const projectRoot = join(__dirname, '../../..');
     const provePath = join(projectRoot, 'prove');
     const proveGoPath = join(projectRoot, 'cmd/prove/main.go');
+    
+    // Check file existence (outside try block so variables are accessible)
+    const proveExists = existsSync(provePath);
+    const proveGoExists = existsSync(proveGoPath);
+    const buildDir = join(projectRoot, 'build');
+    const provingKeyPath = join(buildDir, 'proving_key.pk');
+    const ccsPath = join(buildDir, 'circuit.ccs');
+    const provingKeyExists = existsSync(provingKeyPath);
+    const ccsExists = existsSync(ccsPath);
 
     // #region agent log
     try {
-      const proveExists = existsSync(provePath);
-      const proveGoExists = existsSync(proveGoPath);
-      const buildDir = join(projectRoot, 'build');
-      const provingKeyPath = join(buildDir, 'proving_key.pk');
-      const ccsPath = join(buildDir, 'circuit.ccs');
-      const provingKeyExists = existsSync(provingKeyPath);
-      const ccsExists = existsSync(ccsPath);
-      
       appendFileSync(logPath, JSON.stringify({
         location: 'proof-generator.js:75',
         message: 'Before exec prove',
@@ -139,24 +140,19 @@ export async function generateProof(input) {
         runId: 'pre-fix',
         hypothesisId: 'C'
       }) + '\n');
-      
-      if (!provingKeyExists) {
-        throw new Error(`Proving key not found at ${provingKeyPath}. Please run 'go run cmd/generate-verifier/main.go' to generate it`);
-      }
-      if (!ccsExists) {
-        throw new Error(`Constraint system not found at ${ccsPath}. Please run 'go run cmd/generate-verifier/main.go' to generate it`);
-      }
-      if (!proveGoExists) {
-        throw new Error(`Prove Go source not found at ${proveGoPath}`);
-      }
-    } catch (logError) {
-      if (logError.message && (logError.message.includes('Proving key not found') || 
-          logError.message.includes('Constraint system not found') ||
-          logError.message.includes('Prove Go source not found'))) {
-        throw logError;
-      }
-    }
+    } catch (logError) {}
     // #endregion
+    
+    // Validate required files exist
+    if (!provingKeyExists) {
+      throw new Error(`Proving key not found at ${provingKeyPath}. Please run 'go run cmd/generate-verifier/main.go' to generate it`);
+    }
+    if (!ccsExists) {
+      throw new Error(`Constraint system not found at ${ccsPath}. Please run 'go run cmd/generate-verifier/main.go' to generate it`);
+    }
+    if (!proveGoExists) {
+      throw new Error(`Prove Go source not found at ${proveGoPath}`);
+    }
 
     // Use 'go run' instead of pre-built binary to avoid architecture mismatch issues
     // This works on any platform where Go is installed
@@ -178,7 +174,7 @@ export async function generateProof(input) {
         message: 'Executing prove command',
         data: {
           command,
-          usingGoRun: !proveExists,
+          usingGoRun: useGoRun,
           cwd: projectRoot,
         },
         timestamp: Date.now(),
