@@ -8,14 +8,23 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // Load contract ABIs
+// Try local contracts directory first (for deployment), then fall back to out/ (for local dev)
 const loadABI = (contractName) => {
+  // First try: local contracts directory (for production deployment)
   try {
-    const abiPath = join(__dirname, '../../../out', `${contractName}.sol`, `${contractName}.json`);
-    const contractJson = JSON.parse(readFileSync(abiPath, 'utf8'));
+    const localAbiPath = join(__dirname, '../../contracts', `${contractName}.json`);
+    const contractJson = JSON.parse(readFileSync(localAbiPath, 'utf8'));
     return contractJson.abi;
-  } catch (error) {
-    console.error(`Error loading ABI for ${contractName}:`, error.message);
-    return null;
+  } catch (localError) {
+    // Fallback: try out/ directory (for local development)
+    try {
+      const abiPath = join(__dirname, '../../../out', `${contractName}.sol`, `${contractName}.json`);
+      const contractJson = JSON.parse(readFileSync(abiPath, 'utf8'));
+      return contractJson.abi;
+    } catch (error) {
+      console.error(`Error loading ABI for ${contractName}:`, error.message);
+      return null;
+    }
   }
 };
 

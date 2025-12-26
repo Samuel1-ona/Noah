@@ -24,6 +24,11 @@
             "date": 1766489840885,
             "name": "/Users/machine/Documents/Pyp/logs/combined-2025-12-23.log",
             "hash": "0c407421a683b1e8870b45a418da9a7a784e4c5d6d0b9c785d47a4a576f1eeea"
+        },
+        {
+            "date": 1766772093488,
+            "name": "/Users/machine/Documents/Pyp/logs/combined-2025-12-26.log",
+            "hash": "1fa60dc443c0481fa12c0af032f89f27a2a5f261ac14e3036af9474e5c2ab1e4"
         }
     ],
     "hashType": "sha256"
