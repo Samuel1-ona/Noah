@@ -110,6 +110,12 @@ export async function generateProof(input) {
     // #region agent log
     try {
       const proveExists = existsSync(provePath);
+      const buildDir = join(projectRoot, 'build');
+      const provingKeyPath = join(buildDir, 'proving_key.pk');
+      const ccsPath = join(buildDir, 'circuit.ccs');
+      const provingKeyExists = existsSync(provingKeyPath);
+      const ccsExists = existsSync(ccsPath);
+      
       appendFileSync(logPath, JSON.stringify({
         location: 'proof-generator.js:75',
         message: 'Before exec prove',
@@ -117,6 +123,11 @@ export async function generateProof(input) {
           projectRoot,
           provePath,
           proveExists,
+          buildDir,
+          provingKeyPath,
+          provingKeyExists,
+          ccsPath,
+          ccsExists,
           inputPath,
           command: `${provePath} ${inputPath}`,
         },
@@ -125,11 +136,20 @@ export async function generateProof(input) {
         runId: 'pre-fix',
         hypothesisId: 'C'
       }) + '\n');
+      
       if (!proveExists) {
-        throw new Error(`Prove binary not found at ${provePath}`);
+        throw new Error(`Prove binary not found at ${provePath}. Please build it with 'go build -o prove cmd/prove/main.go'`);
+      }
+      if (!provingKeyExists) {
+        throw new Error(`Proving key not found at ${provingKeyPath}. Please run 'go run cmd/generate-verifier/main.go' to generate it`);
+      }
+      if (!ccsExists) {
+        throw new Error(`Constraint system not found at ${ccsPath}. Please run 'go run cmd/generate-verifier/main.go' to generate it`);
       }
     } catch (logError) {
-      if (logError.message && logError.message.includes('Prove binary not found')) {
+      if (logError.message && (logError.message.includes('Prove binary not found') || 
+          logError.message.includes('Proving key not found') || 
+          logError.message.includes('Constraint system not found'))) {
         throw logError;
       }
     }
