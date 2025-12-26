@@ -17,6 +17,21 @@ app.use(cors());
 app.use(requestLogger);
 app.use(apiLimiter);
 
+// Debug middleware to log ALL incoming requests
+app.use((req, res, next) => {
+  // #region agent log
+  logger.info('Gateway incoming request', { 
+    method: req.method,
+    originalUrl: req.originalUrl,
+    url: req.url,
+    path: req.path,
+    baseUrl: req.baseUrl,
+    headers: { host: req.headers.host }
+  });
+  // #endregion
+  next();
+});
+
 // Health check with dependencies
 app.get('/health', healthCheck);
 app.get('/api/v1/health', healthCheck);
@@ -168,7 +183,43 @@ v1Router.use('/proof', createProxyMiddleware({
   },
 }));
 
+// Mount v1Router with /api/v1 prefix
 app.use('/api/v1', v1Router);
+
+// Also mount v1Router without prefix for requests that come without /api/v1
+// This handles cases where the frontend baseURL might not include /api/v1
+const v1RouterNoPrefix = express.Router();
+v1RouterNoPrefix.use('/issuer', createProxyMiddleware({
+  target: `http://localhost:${config.ports.issuer}`,
+  changeOrigin: true,
+  pathRewrite: (path, req) => {
+    let rewritten = path.replace(/^\/issuer/, '');
+    if (!rewritten.startsWith('/')) rewritten = '/' + rewritten;
+    logger.info('Path rewrite (Issuer - no prefix)', { original: path, rewritten });
+    return rewritten;
+  },
+}));
+v1RouterNoPrefix.use('/user', createProxyMiddleware({
+  target: `http://localhost:${config.ports.user}`,
+  changeOrigin: true,
+  pathRewrite: (path, req) => req.path || path.replace(/^\/user/, ''),
+}));
+v1RouterNoPrefix.use('/protocol', createProxyMiddleware({
+  target: `http://localhost:${config.ports.protocol}`,
+  changeOrigin: true,
+  pathRewrite: (path, req) => {
+    let rewritten = path.replace(/^\/protocol/, '');
+    if (!rewritten.startsWith('/')) rewritten = '/' + rewritten;
+    logger.info('Path rewrite (Protocol - no prefix)', { original: path, rewritten });
+    return rewritten;
+  },
+}));
+v1RouterNoPrefix.use('/proof', createProxyMiddleware({
+  target: `http://localhost:${config.ports.proof}`,
+  changeOrigin: true,
+  pathRewrite: (path, req) => req.path || path.replace(/^\/proof/, ''),
+}));
+app.use(v1RouterNoPrefix);
 
 // 404 handler
 app.use(notFoundHandler);
