@@ -230,6 +230,15 @@ export async function generateProof(input) {
         } catch (logError) {}
         // #endregion
         
+        // Check if Go is not available
+        if (genError.message && genError.message.includes('go: not found')) {
+          throw new Error(
+            `Go is not installed on this system. The proving key and constraint system files should be included in the repository. ` +
+            `Please ensure build/proving_key.pk and build/circuit.ccs are committed to the repository. ` +
+            `If they are missing, generate them locally with 'go run cmd/generate-verifier/main.go' and commit them.`
+          );
+        }
+        
         throw new Error(`Failed to auto-generate proving key: ${genError.message}`);
       }
     }

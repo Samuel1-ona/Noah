@@ -12,7 +12,11 @@ package-lock.json
 .env.local
 
 # Build artifacts
-build/
+# Ignore everything in build/ except ZK proof system files
+build/*
+!build/proving_key.pk
+!build/circuit.ccs
+!build/verification_key.vk
 *.zkey
 *.ptau
 *.r1cs
@@ -20,7 +24,6 @@ build/
 *.sym
 proof.json
 public.json
-verification_key.json
 
 # IDE
 .vscode/
