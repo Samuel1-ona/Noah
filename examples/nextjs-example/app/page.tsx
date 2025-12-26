@@ -66,7 +66,7 @@ export default function Home() {
               <button
                 onClick={connectWallet}
                 className="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
-              >
+            >
                 Connect MetaMask
               </button>
             </div>
@@ -76,8 +76,8 @@ export default function Home() {
                 <h3 className="font-semibold text-blue-900 mb-2">Connected Wallet</h3>
                 <p className="text-sm text-gray-700">
                   <strong>Address:</strong> {account}
-                </p>
-              </div>
+          </p>
+        </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <ProtocolSection signer={signer} account={account} />
@@ -87,7 +87,7 @@ export default function Home() {
             </>
           )}
         </div>
-      </div>
-    </main>
+        </div>
+      </main>
   );
 }

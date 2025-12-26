@@ -28,7 +28,8 @@ const PORT = config.ports.issuer;
 app.use(cors());
 app.use(express.json());
 app.use(requestLogger);
-app.use(apiLimiter);
+// Rate limiting is handled at the gateway level, no need to apply here
+// app.use(apiLimiter);
 
 // Initialize contract
 const issuerPrivateKey = process.env.ISSUER_PRIVATE_KEY;

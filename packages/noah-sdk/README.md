@@ -556,8 +556,8 @@ async function requestAccess() {
   if (!isValid) {
     throw new Error('Credential is invalid or revoked');
   }
-  
-  // Generate proof
+
+// Generate proof
   const proofResult = await user.generateProof({
     credential: {
       age: 25,
@@ -567,8 +567,8 @@ async function requestAccess() {
     },
     requirements
   });
-  
-  // Verify and grant access
+
+// Verify and grant access
   const tx = await user.verifyAndGrantAccess({
     proof: proofResult.proof,
     publicSignals: proofResult.publicSignals,

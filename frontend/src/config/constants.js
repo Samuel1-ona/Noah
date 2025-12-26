@@ -13,6 +13,11 @@ try {
 
 // API Configuration
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1';
+// #region agent log
+if (typeof window !== 'undefined') {
+  fetch('http://127.0.0.1:7243/ingest/5ad0b50e-7025-45eb-bffd-1e5073177618',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'constants.js:15',message:'API_BASE_URL configuration',data:{envVar:import.meta.env.VITE_API_BASE_URL,resolved:API_BASE_URL},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'C'})}).catch(()=>{});
+}
+// #endregion
 
 // Blockchain Configuration
 export const RPC_URL = import.meta.env.VITE_RPC_URL || 'https://rpc.sepolia.mantle.xyz';

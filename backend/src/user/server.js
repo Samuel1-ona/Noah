@@ -27,7 +27,8 @@ const PORT = config.ports.user;
 app.use(cors());
 app.use(express.json());
 app.use(requestLogger);
-app.use(apiLimiter);
+// Rate limiting is handled at the gateway level, no need to apply here
+// app.use(apiLimiter);
 
 // Health check
 app.get('/health', (req, res) => {

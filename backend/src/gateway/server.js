@@ -28,7 +28,14 @@ const v1Router = express.Router();
 v1Router.use('/issuer', createProxyMiddleware({
   target: `http://localhost:${config.ports.issuer}`,
   changeOrigin: true,
-  pathRewrite: { '^/api/v1/issuer': '' },
+  pathRewrite: { '^/issuer': '' },
+  onProxyReq: (proxyReq, req, res) => {
+    // #region agent log
+    const originalPath = req.originalUrl || req.url;
+    const rewrittenPath = proxyReq.path;
+    logger.info('Proxy request (Issuer)', { originalPath, rewrittenPath, method: req.method });
+    // #endregion
+  },
   onError: (err, req, res) => {
     logger.error('Proxy error (Issuer)', { error: err.message, url: req.url });
     res.status(503).json({ success: false, error: { message: 'Issuer service unavailable' } });
@@ -39,7 +46,7 @@ v1Router.use('/issuer', createProxyMiddleware({
 v1Router.use('/user', createProxyMiddleware({
   target: `http://localhost:${config.ports.user}`,
   changeOrigin: true,
-  pathRewrite: { '^/api/v1/user': '' },
+  pathRewrite: { '^/user': '' },
   onError: (err, req, res) => {
     logger.error('Proxy error (User)', { error: err.message, url: req.url });
     res.status(503).json({ success: false, error: { message: 'User service unavailable' } });
@@ -50,7 +57,7 @@ v1Router.use('/user', createProxyMiddleware({
 v1Router.use('/protocol', createProxyMiddleware({
   target: `http://localhost:${config.ports.protocol}`,
   changeOrigin: true,
-  pathRewrite: { '^/api/v1/protocol': '' },
+  pathRewrite: { '^/protocol': '' },
   onError: (err, req, res) => {
     logger.error('Proxy error (Protocol)', { error: err.message, url: req.url });
     res.status(503).json({ success: false, error: { message: 'Protocol service unavailable' } });
@@ -61,7 +68,7 @@ v1Router.use('/protocol', createProxyMiddleware({
 v1Router.use('/proof', createProxyMiddleware({
   target: `http://localhost:${config.ports.proof}`,
   changeOrigin: true,
-  pathRewrite: { '^/api/v1/proof': '' },
+  pathRewrite: { '^/proof': '' },
   onError: (err, req, res) => {
     logger.error('Proxy error (Proof)', { error: err.message, url: req.url });
     res.status(503).json({ success: false, error: { message: 'Proof service unavailable' } });

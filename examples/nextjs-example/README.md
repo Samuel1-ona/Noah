@@ -34,8 +34,8 @@ A full-stack Next.js application demonstrating NOAH SDK usage with server-side r
    ```
 
 4. **Start the development server:**
-   ```bash
-   npm run dev
+```bash
+npm run dev
    ```
 
 5. **Open in browser:**

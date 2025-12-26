@@ -13,6 +13,10 @@ const apiClient = axios.create({
 // Request interceptor for adding auth token
 apiClient.interceptors.request.use(
   (config) => {
+    // #region agent log
+    const fullUrl = `${config.baseURL}${config.url}`;
+    fetch('http://127.0.0.1:7243/ingest/5ad0b50e-7025-45eb-bffd-1e5073177618',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'apiClient.js:16',message:'API request being made',data:{baseURL:config.baseURL,url:config.url,fullUrl,method:config.method},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
     // Add JWT token if available
     const token = localStorage.getItem('authToken');
     if (token) {
@@ -29,6 +33,10 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response.data,
   (error) => {
+    // #region agent log
+    const requestUrl = error.config ? `${error.config.baseURL}${error.config.url}` : 'unknown';
+    fetch('http://127.0.0.1:7243/ingest/5ad0b50e-7025-45eb-bffd-1e5073177618',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'apiClient.js:32',message:'API request error',data:{requestUrl,status:error.response?.status,statusText:error.response?.statusText,errorMessage:error.response?.data?.error?.message||error.message,responseData:error.response?.data},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
     // Preserve full error object for detailed error handling
     // For 404 errors, we want to preserve the error response data
     const errorMessage = error.response?.data?.error?.message || error.message || 'An error occurred';
