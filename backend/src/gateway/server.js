@@ -44,19 +44,54 @@ v1Router.use('/issuer', createProxyMiddleware({
   changeOrigin: true,
   pathRewrite: (path, req) => {
     // #region agent log
-    logger.info('Path rewrite (Issuer)', { 
-      originalPath: path, 
+    logger.info('Path rewrite (Issuer) - INPUT', { 
+      pathParam: path, 
       originalUrl: req.originalUrl,
       url: req.url,
-      path: req.path
+      path: req.path,
+      baseUrl: req.baseUrl
     });
     // #endregion
-    // Express Router strips '/issuer' from req.path before middleware runs
-    // Use req.path directly (already stripped) instead of the path parameter
-    const rewritten = req.path || path.replace(/^\/issuer/, '');
+    
+    // The path parameter from http-proxy-middleware might contain the full path
+    // We need to remove '/issuer' prefix from whatever source has it
+    let sourcePath = path;
+    
+    // Check if path parameter has /issuer prefix
+    if (path && path.includes('/issuer')) {
+      sourcePath = path;
+    }
+    // Check if req.path has /issuer (shouldn't happen with Express Router, but be safe)
+    else if (req.path && req.path.includes('/issuer')) {
+      sourcePath = req.path;
+    }
+    // Check if req.url has /issuer
+    else if (req.url && req.url.includes('/issuer')) {
+      sourcePath = req.url.split('?')[0]; // Remove query string
+    }
+    // Use req.path if available (Express Router should have stripped /issuer)
+    else if (req.path) {
+      sourcePath = req.path;
+    }
+    
+    // Remove /issuer prefix from the beginning
+    let rewritten = sourcePath.replace(/^\/issuer/, '').replace(/^\/api\/v1\/issuer/, '');
+    
+    // Ensure path starts with /
+    if (!rewritten.startsWith('/')) {
+      rewritten = '/' + rewritten;
+    }
+    
     // #region agent log
-    logger.info('Path rewrite result (Issuer)', { original: path, rewritten, reqPath: req.path });
+    logger.info('Path rewrite (Issuer) - OUTPUT', { 
+      originalPath: path,
+      sourcePath,
+      rewritten,
+      reqPath: req.path,
+      reqUrl: req.url
+    });
     // #endregion
+    
     return rewritten;
   },
   onProxyReq: (proxyReq, req, res) => {
