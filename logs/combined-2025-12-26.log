@@ -29,3 +29,6 @@
 {"level":"info","message":"Protocol service started","network":"mantle-sepolia","port":3003,"service":"zk-kyc-backend","timestamp":"2025-12-26 22:09:52"}
 {"level":"info","message":"Protocol service started","network":"mantle-sepolia","port":3003,"service":"zk-kyc-backend","timestamp":"2025-12-26 22:10:07"}
 {"level":"info","message":"Protocol service started","network":"mantle-sepolia","port":3003,"service":"zk-kyc-backend","timestamp":"2025-12-26 22:10:45"}
+{"level":"info","message":"Protocol service started","network":"mantle-sepolia","port":3003,"service":"zk-kyc-backend","timestamp":"2025-12-26 22:17:32"}
+{"level":"info","message":"Protocol service started","network":"mantle-sepolia","port":3003,"service":"zk-kyc-backend","timestamp":"2025-12-26 22:17:53"}
+{"level":"info","message":"Protocol service started","network":"mantle-sepolia","port":3003,"service":"zk-kyc-backend","timestamp":"2025-12-26 22:19:17"}

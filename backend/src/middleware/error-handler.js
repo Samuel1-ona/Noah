@@ -66,6 +66,11 @@ export const errorHandler = (err, req, res, next) => {
     },
   };
 
+  // Always include validation errors in response (not just in development)
+  if (err.validationErrors) {
+    errorResponse.error.validationErrors = err.validationErrors;
+  }
+
   // Always log validation errors for debugging
   if (err.validationErrors) {
     console.error('Validation errors:', err.validationErrors);

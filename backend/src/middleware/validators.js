@@ -9,7 +9,18 @@ export const validate = (req, res, next) => {
       field: err.path || err.param,
       message: err.msg,
       value: err.value,
+      location: err.location,
     }));
+    // #region agent log
+    logger.error('Validation failed', {
+      errors: errorMessages,
+      body: req.body,
+      method: req.method,
+      url: req.url,
+      credential: req.body.credential,
+      requirements: req.body.requirements,
+    });
+    // #endregion
     const error = new AppError('Validation failed', 400);
     error.validationErrors = errorMessages;
     throw error;

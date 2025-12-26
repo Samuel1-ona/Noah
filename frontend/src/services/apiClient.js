@@ -56,9 +56,13 @@ apiClient.interceptors.response.use(
     const enhancedError = new Error(errorMessage);
     enhancedError.response = error.response;
     enhancedError.status = error.response?.status;
-    // Preserve the full response data for 404 errors (they contain useful info)
+    // Preserve the full response data (including validation errors)
     if (error.response?.data) {
       enhancedError.responseData = error.response.data;
+      // Also attach validation errors directly for easier access
+      if (error.response.data.error?.validationErrors) {
+        enhancedError.validationErrors = error.response.data.error.validationErrors;
+      }
     }
     return Promise.reject(enhancedError);
   }

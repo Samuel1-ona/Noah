@@ -105,7 +105,29 @@ function UserDashboard() {
       setError(null);
     },
     onError: (err) => {
-      setError(err.message);
+      // #region agent log
+      console.error('Proof generation error:', err);
+      console.error('Error response:', err.response);
+      console.error('Error responseData:', err.responseData);
+      // #endregion
+      
+      // Extract validation errors if present
+      let errorMessage = err.message;
+      if (err.responseData?.error?.validationErrors) {
+        const validationErrors = err.responseData.error.validationErrors;
+        const errorDetails = validationErrors.map((e) => 
+          `${e.field || e.param}: ${e.message}`
+        ).join(', ');
+        errorMessage = `Validation failed: ${errorDetails}`;
+      } else if (err.response?.data?.error?.validationErrors) {
+        const validationErrors = err.response.data.error.validationErrors;
+        const errorDetails = validationErrors.map((e) => 
+          `${e.field || e.param}: ${e.message}`
+        ).join(', ');
+        errorMessage = `Validation failed: ${errorDetails}`;
+      }
+      
+      setError(errorMessage);
       setSuccess(null);
     },
   });

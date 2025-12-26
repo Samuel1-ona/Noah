@@ -27,21 +27,41 @@ app.get('/health', (req, res) => {
 app.post('/generate',
   strictLimiter,
   authenticateToken,
-  generateProofValidator,
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req, res, next) => {
     // #region agent log
-    logger.info('Proof generation request received', {
+    logger.info('Proof generation request received (before validation)', {
+      fullBody: JSON.stringify(req.body),
       hasCredential: !!req.body.credential,
       hasRequirements: !!req.body.requirements,
       credentialKeys: req.body.credential ? Object.keys(req.body.credential) : [],
       requirementsKeys: req.body.requirements ? Object.keys(req.body.requirements) : [],
       credentialAge: req.body.credential?.age,
+      credentialAgeType: typeof req.body.credential?.age,
       credentialJurisdiction: req.body.credential?.jurisdiction,
       credentialJurisdictionType: typeof req.body.credential?.jurisdiction,
+      credentialAccredited: req.body.credential?.accredited,
+      credentialAccreditedType: typeof req.body.credential?.accredited,
+      credentialHash: req.body.credential?.credentialHash,
       requirementsMinAge: req.body.requirements?.minAge,
+      requirementsMinAgeType: typeof req.body.requirements?.minAge,
       requirementsAllowedJurisdictions: req.body.requirements?.allowedJurisdictions,
       requirementsAllowedJurisdictionsType: Array.isArray(req.body.requirements?.allowedJurisdictions) ? 'array' : typeof req.body.requirements?.allowedJurisdictions,
+      requirementsAllowedJurisdictionsLength: Array.isArray(req.body.requirements?.allowedJurisdictions) ? req.body.requirements.allowedJurisdictions.length : 'not-array',
       requirementsRequireAccredited: req.body.requirements?.requireAccredited,
+      requirementsRequireAccreditedType: typeof req.body.requirements?.requireAccredited,
+      requirementsProtocolAddress: req.body.requirements?.protocolAddress,
+    });
+    // #endregion
+    next();
+  }),
+  generateProofValidator,
+  asyncHandler(async (req, res) => {
+    // #region agent log
+    logger.info('Proof generation request passed validation', {
+      credentialAge: req.body.credential?.age,
+      credentialJurisdiction: req.body.credential?.jurisdiction,
+      requirementsMinAge: req.body.requirements?.minAge,
+      requirementsAllowedJurisdictions: req.body.requirements?.allowedJurisdictions,
     });
     // #endregion
     const { credential, requirements } = req.body;
