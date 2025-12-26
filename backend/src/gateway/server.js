@@ -220,14 +220,68 @@ app.use('/api/v1', v1Router);
 // Also mount v1Router without prefix for requests that come without /api/v1
 // This handles cases where the frontend baseURL might not include /api/v1
 const v1RouterNoPrefix = express.Router();
+
+// Debug middleware for no-prefix router
+v1RouterNoPrefix.use((req, res, next) => {
+  // #region agent log
+  logger.info('v1RouterNoPrefix request', { 
+    method: req.method,
+    originalUrl: req.originalUrl,
+    url: req.url,
+    path: req.path,
+    baseUrl: req.baseUrl
+  });
+  // #endregion
+  next();
+});
+
 v1RouterNoPrefix.use('/issuer', createProxyMiddleware({
   target: `http://localhost:${config.ports.issuer}`,
   changeOrigin: true,
   pathRewrite: (path, req) => {
-    let rewritten = path.replace(/^\/issuer/, '');
-    if (!rewritten.startsWith('/')) rewritten = '/' + rewritten;
-    logger.info('Path rewrite (Issuer - no prefix)', { original: path, rewritten });
-    return rewritten;
+    // #region agent log
+    logger.info('Path rewrite (Issuer - no prefix) - INPUT', { 
+      pathParam: path,
+      originalPath: path, 
+      reqPath: req.path,
+      reqUrl: req.url,
+      originalUrl: req.originalUrl,
+      baseUrl: req.baseUrl
+    });
+    // #endregion
+    
+    // Express Router strips '/issuer' from req.path before middleware runs
+    // Use req.path directly (already stripped) instead of the path parameter
+    let rewritten = req.path;
+    
+    // Fallback: if req.path doesn't exist or still has /issuer, try path parameter
+    if (!rewritten || rewritten.startsWith('/issuer')) {
+      rewritten = path.replace(/^\/issuer/, '');
+    }
+    
+    // Ensure path starts with /
+    if (rewritten && !rewritten.startsWith('/')) {
+      rewritten = '/' + rewritten;
+    }
+    
+    // #region agent log
+    logger.info('Path rewrite (Issuer - no prefix) - OUTPUT', { 
+      originalPath: path, 
+      reqPath: req.path, 
+      rewritten 
+    });
+    // #endregion
+    
+    return rewritten || '/';
+  },
+  onProxyReq: (proxyReq, req, res) => {
+    // #region agent log
+    logger.info('Proxy request (Issuer - no prefix)', { 
+      originalUrl: req.originalUrl,
+      proxyPath: proxyReq.path,
+      method: req.method 
+    });
+    // #endregion
   },
 }));
 v1RouterNoPrefix.use('/user', createProxyMiddleware({
@@ -239,10 +293,47 @@ v1RouterNoPrefix.use('/protocol', createProxyMiddleware({
   target: `http://localhost:${config.ports.protocol}`,
   changeOrigin: true,
   pathRewrite: (path, req) => {
-    let rewritten = path.replace(/^\/protocol/, '');
-    if (!rewritten.startsWith('/')) rewritten = '/' + rewritten;
-    logger.info('Path rewrite (Protocol - no prefix)', { original: path, rewritten });
-    return rewritten;
+    // #region agent log
+    logger.info('Path rewrite (Protocol - no prefix) - INPUT', { 
+      pathParam: path,
+      originalPath: path, 
+      reqPath: req.path,
+      reqUrl: req.url,
+      originalUrl: req.originalUrl
+    });
+    // #endregion
+    
+    // Express Router strips '/protocol' from req.path before middleware runs
+    let rewritten = req.path;
+    
+    // Fallback: if req.path doesn't exist or still has /protocol, try path parameter
+    if (!rewritten || rewritten.startsWith('/protocol')) {
+      rewritten = path.replace(/^\/protocol/, '');
+    }
+    
+    // Ensure path starts with /
+    if (rewritten && !rewritten.startsWith('/')) {
+      rewritten = '/' + rewritten;
+    }
+    
+    // #region agent log
+    logger.info('Path rewrite (Protocol - no prefix) - OUTPUT', { 
+      originalPath: path, 
+      reqPath: req.path, 
+      rewritten 
+    });
+    // #endregion
+    
+    return rewritten || '/';
+  },
+  onProxyReq: (proxyReq, req, res) => {
+    // #region agent log
+    logger.info('Proxy request (Protocol - no prefix)', { 
+      originalUrl: req.originalUrl,
+      proxyPath: proxyReq.path,
+      method: req.method 
+    });
+    // #endregion
   },
 }));
 v1RouterNoPrefix.use('/proof', createProxyMiddleware({
@@ -251,6 +342,27 @@ v1RouterNoPrefix.use('/proof', createProxyMiddleware({
   pathRewrite: (path, req) => req.path || path.replace(/^\/proof/, ''),
 }));
 app.use(v1RouterNoPrefix);
+
+// Debug: Log requests that don't match any route before 404
+app.use((req, res, next) => {
+  // #region agent log
+  if (!req.path.startsWith('/api/v1') && 
+      !req.path.startsWith('/health') && 
+      !req.path.startsWith('/issuer') && 
+      !req.path.startsWith('/user') && 
+      !req.path.startsWith('/protocol') && 
+      !req.path.startsWith('/proof')) {
+    logger.warn('Request not matching any route - will 404', {
+      method: req.method,
+      originalUrl: req.originalUrl,
+      url: req.url,
+      path: req.path,
+      baseUrl: req.baseUrl
+    });
+  }
+  // #endregion
+  next();
+});
 
 // 404 handler
 app.use(notFoundHandler);
