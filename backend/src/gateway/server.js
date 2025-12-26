@@ -11,7 +11,16 @@ const app = express();
 const PORT = config.ports.gateway;
 
 // Middleware
-app.use(cors());
+// CORS configuration - allow all origins for development and production
+app.use(cors({
+  origin: true, // Allow all origins (reflects the request origin)
+  credentials: true, // Allow credentials
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Content-Length', 'X-Foo', 'X-Bar'],
+  preflightContinue: false,
+  optionsSuccessStatus: 204
+}));
 // Don't parse JSON in gateway - let target services parse it
 // This allows the proxy to forward the raw body stream
 app.use(requestLogger);
