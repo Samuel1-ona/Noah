@@ -58,9 +58,23 @@ export const CONTRACT_ABIS = {
   ProtocolAccessControl: loadABI('ProtocolAccessControl'),
 };
 
-// Get provider
+// Get provider with error handling for rate limiting
 export const getProvider = () => {
-  return new ethers.JsonRpcProvider(config.network.rpcUrl);
+  const provider = new ethers.JsonRpcProvider(config.network.rpcUrl);
+  
+  // Handle RPC errors gracefully (especially rate limiting)
+  provider.on('error', (error) => {
+    // Suppress rate limiting errors from event listeners
+    if (error?.code === 'BAD_DATA' && error?.value?.[0]?.code === -32005) {
+      // Rate limiting error - log but don't crash
+      console.warn('RPC rate limit warning (non-critical):', error.message);
+      return;
+    }
+    // Log other errors
+    console.error('RPC provider error:', error.message);
+  });
+  
+  return provider;
 };
 
 // Get signer (for transactions)

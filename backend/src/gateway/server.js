@@ -30,7 +30,18 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 // Explicitly handle OPTIONS requests for CORS preflight
-app.options('*', cors(corsOptions));
+app.options('*', (req, res) => {
+  // #region agent log
+  logger.info('OPTIONS preflight request', { 
+    origin: req.headers.origin,
+    method: req.method,
+    url: req.url 
+  });
+  // #endregion
+  cors(corsOptions)(req, res, () => {
+    res.sendStatus(204);
+  });
+});
 
 // Don't parse JSON in gateway - let target services parse it
 // This allows the proxy to forward the raw body stream
