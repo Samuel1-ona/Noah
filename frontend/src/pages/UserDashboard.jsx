@@ -105,12 +105,6 @@ function UserDashboard() {
       setError(null);
     },
     onError: (err) => {
-      // #region agent log
-      console.error('Proof generation error:', err);
-      console.error('Error response:', err.response);
-      console.error('Error responseData:', err.responseData);
-      // #endregion
-      
       // Extract validation errors if present
       let errorMessage = err.message;
       if (err.responseData?.error?.validationErrors) {
@@ -223,31 +217,17 @@ function UserDashboard() {
           fullError: err
         });
         
-        // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/5ad0b50e-7025-45eb-bffd-1e5073177618',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'UserDashboard.jsx:141',message:'Error caught in credential fetch',data:{status:err.status||err.response?.status,hasErrorResponse:!!errorResponse,hasErrorData:!!errorData,existsOnChain:errorData?.existsOnChain,errorDataKeys:errorData?Object.keys(errorData):[],errorResponseKeys:errorResponse?Object.keys(errorResponse):[]},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'A'})}).catch(()=>{});
-        // #endregion agent log
-        
         // Check if credential exists on-chain (status 404 with existsOnChain flag)
         const is404 = err.status === 404 || err.response?.status === 404;
         const shouldShowManual = is404 && errorData?.existsOnChain;
         
-        // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/5ad0b50e-7025-45eb-bffd-1e5073177618',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'UserDashboard.jsx:154',message:'Condition evaluation for manual entry',data:{is404,existsOnChain:errorData?.existsOnChain,shouldShowManual,currentShowManualEntry:showManualEntry},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'B'})}).catch(()=>{});
-        // #endregion agent log
-        
         if (shouldShowManual) {
           // Credential exists on-chain but not in database - show manual entry form
-          // #region agent log
-          fetch('http://127.0.0.1:7243/ingest/5ad0b50e-7025-45eb-bffd-1e5073177618',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'UserDashboard.jsx:160',message:'Setting showManualEntry to true',data:{before:showManualEntry},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'C'})}).catch(()=>{});
-          // #endregion agent log
           setError(
             `Credential found on-chain but data not available. ` +
             `Please enter the credential data manually below, or contact the issuer to register it in the database.`
           );
           setShowManualEntry(true);
-          // #region agent log
-          fetch('http://127.0.0.1:7243/ingest/5ad0b50e-7025-45eb-bffd-1e5073177618',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'UserDashboard.jsx:168',message:'After setShowManualEntry(true)',data:{errorSet:true},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'C'})}).catch(()=>{});
-          // #endregion agent log
           return; // Don't proceed, wait for manual entry
         } else if (is404) {
           // Credential doesn't exist on-chain
@@ -269,9 +249,6 @@ function UserDashboard() {
     const isDataIncomplete = credential && (!credential.age || !credential.jurisdiction || credential.accredited === null || credential.accredited === undefined);
     
     if (isDataIncomplete && !showManualEntry) {
-      // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/5ad0b50e-7025-45eb-bffd-1e5073177618',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'UserDashboard.jsx:196',message:'Credential data is incomplete, showing manual entry form',data:{hasAge:!!credential.age,hasJurisdiction:!!credential.jurisdiction,accredited:credential.accredited},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'D'})}).catch(()=>{});
-      // #endregion agent log
       setError(
         `Credential data is incomplete. Please enter the missing credential data (age, jurisdiction, accredited) manually below.`
       );
@@ -571,12 +548,6 @@ function UserDashboard() {
               />
               
               {/* Manual credential data entry (shown when credential exists on-chain but not in DB) */}
-              {/* #region agent log */}
-              {(() => {
-                fetch('http://127.0.0.1:7243/ingest/5ad0b50e-7025-45eb-bffd-1e5073177618',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'UserDashboard.jsx:460',message:'Rendering check for manual entry form',data:{showManualEntry,willRender:!!showManualEntry},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'C'})}).catch(()=>{});
-                return null;
-              })()}
-              {/* #endregion agent log */}
               {showManualEntry && (
                 <Alert 
                   severity="warning" 

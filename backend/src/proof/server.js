@@ -28,74 +28,17 @@ app.post('/generate',
   strictLimiter,
   authenticateToken,
   asyncHandler(async (req, res, next) => {
-    // #region agent log
-    logger.info('Proof generation request received (before validation)', {
-      fullBody: JSON.stringify(req.body),
-      hasCredential: !!req.body.credential,
-      hasRequirements: !!req.body.requirements,
-      credentialKeys: req.body.credential ? Object.keys(req.body.credential) : [],
-      requirementsKeys: req.body.requirements ? Object.keys(req.body.requirements) : [],
-      credentialAge: req.body.credential?.age,
-      credentialAgeType: typeof req.body.credential?.age,
-      credentialJurisdiction: req.body.credential?.jurisdiction,
-      credentialJurisdictionType: typeof req.body.credential?.jurisdiction,
-      credentialAccredited: req.body.credential?.accredited,
-      credentialAccreditedType: typeof req.body.credential?.accredited,
-      credentialHash: req.body.credential?.credentialHash,
-      requirementsMinAge: req.body.requirements?.minAge,
-      requirementsMinAgeType: typeof req.body.requirements?.minAge,
-      requirementsAllowedJurisdictions: req.body.requirements?.allowedJurisdictions,
-      requirementsAllowedJurisdictionsType: Array.isArray(req.body.requirements?.allowedJurisdictions) ? 'array' : typeof req.body.requirements?.allowedJurisdictions,
-      requirementsAllowedJurisdictionsLength: Array.isArray(req.body.requirements?.allowedJurisdictions) ? req.body.requirements.allowedJurisdictions.length : 'not-array',
-      requirementsRequireAccredited: req.body.requirements?.requireAccredited,
-      requirementsRequireAccreditedType: typeof req.body.requirements?.requireAccredited,
-      requirementsProtocolAddress: req.body.requirements?.protocolAddress,
-    });
-    // #endregion
     next();
   }),
   generateProofValidator,
   asyncHandler(async (req, res) => {
-    // #region agent log
-    logger.info('Proof generation request passed validation', {
-      credentialAge: req.body.credential?.age,
-      credentialJurisdiction: req.body.credential?.jurisdiction,
-      requirementsMinAge: req.body.requirements?.minAge,
-      requirementsAllowedJurisdictions: req.body.requirements?.allowedJurisdictions,
-    });
-    // #endregion
     const { credential, requirements } = req.body;
-
-    // #region agent log
-    logger.info('Before createProofInput', {
-      credentialAge: credential?.age,
-      credentialJurisdiction: credential?.jurisdiction,
-      credentialJurisdictionType: typeof credential?.jurisdiction,
-      requirementsAllowedJurisdictions: requirements?.allowedJurisdictions,
-    });
-    // #endregion
 
     // Create proof input
     let proofInput;
     try {
       proofInput = createProofInput(credential, requirements);
-      // #region agent log
-      logger.info('After createProofInput', {
-        proofInputKeys: Object.keys(proofInput),
-        actualAge: proofInput.actualAge,
-        actualJurisdiction: proofInput.actualJurisdiction,
-        allowedJurisdictionsLength: proofInput.allowedJurisdictions?.length,
-      });
-      // #endregion
     } catch (error) {
-      // #region agent log
-      logger.error('Error in createProofInput', {
-        error: error.message,
-        stack: error.stack,
-        credential,
-        requirements,
-      });
-      // #endregion
       throw error;
     }
 
@@ -104,21 +47,7 @@ app.post('/generate',
     let proofData;
     try {
       proofData = await generateProof(proofInput);
-      // #region agent log
-      logger.info('After generateProof', {
-        hasProof: !!proofData.proof,
-        hasPublicInputs: !!proofData.publicInputs,
-        publicInputsLength: proofData.publicInputs?.length,
-      });
-      // #endregion
     } catch (error) {
-      // #region agent log
-      logger.error('Error in generateProof', {
-        error: error.message,
-        stack: error.stack,
-        proofInput,
-      });
-      // #endregion
       throw error;
     }
 
@@ -126,24 +55,7 @@ app.post('/generate',
     let formattedProof;
     try {
       formattedProof = formatProofForOnChain(proofData, proofInput, credential.credentialHash);
-      // #region agent log
-      logger.info('After formatProofForOnChain', {
-        hasFormattedProof: !!formattedProof,
-        hasA: !!formattedProof.a,
-        hasB: !!formattedProof.b,
-        hasC: !!formattedProof.c,
-      });
-      // #endregion
     } catch (error) {
-      // #region agent log
-      logger.error('Error in formatProofForOnChain', {
-        error: error.message,
-        stack: error.stack,
-        proofData,
-        proofInput,
-        credentialHash: credential.credentialHash,
-      });
-      // #endregion
       throw error;
     }
 

@@ -23,15 +23,6 @@ export const errorHandler = (err, req, res, next) => {
   if (err.name === 'ValidationError' || err.validationErrors) {
     statusCode = 400;
     message = err.message;
-    // #region agent log
-    errorLogger(err, req);
-    logger.error('Validation error details', {
-      validationErrors: err.validationErrors,
-      body: req.body,
-      method: req.method,
-      url: req.url
-    });
-    // #endregion
   }
 
   // JWT errors
@@ -74,31 +65,7 @@ export const errorHandler = (err, req, res, next) => {
   // Always log validation errors for debugging
   if (err.validationErrors) {
     console.error('Validation errors:', err.validationErrors);
-    // #region agent log
-    logger.error('Validation errors in error handler', {
-      validationErrors: err.validationErrors,
-      body: req.body,
-      method: req.method,
-      url: req.url,
-    });
-    // #endregion
   }
-
-  // #region agent log
-  // Log all 500 errors with full details
-  if (statusCode === 500) {
-    logger.error('500 error in error handler', {
-      errorMessage: err.message,
-      errorStack: err.stack,
-      errorName: err.name,
-      errorCode: err.code,
-      body: req.body,
-      method: req.method,
-      url: req.url,
-      validationErrors: err.validationErrors,
-    });
-  }
-  // #endregion
 
   res.status(statusCode).json(errorResponse);
 };
