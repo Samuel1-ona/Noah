@@ -106,10 +106,12 @@ export async function generateProof(input) {
     // Path to the prove binary (or Go command)
     const projectRoot = join(__dirname, '../../..');
     const provePath = join(projectRoot, 'prove');
+    const proveGoPath = join(projectRoot, 'cmd/prove/main.go');
 
     // #region agent log
     try {
       const proveExists = existsSync(provePath);
+      const proveGoExists = existsSync(proveGoPath);
       const buildDir = join(projectRoot, 'build');
       const provingKeyPath = join(buildDir, 'proving_key.pk');
       const ccsPath = join(buildDir, 'circuit.ccs');
@@ -123,13 +125,14 @@ export async function generateProof(input) {
           projectRoot,
           provePath,
           proveExists,
+          proveGoPath,
+          proveGoExists,
           buildDir,
           provingKeyPath,
           provingKeyExists,
           ccsPath,
           ccsExists,
           inputPath,
-          command: `${provePath} ${inputPath}`,
         },
         timestamp: Date.now(),
         sessionId: 'debug-session',
@@ -137,28 +140,94 @@ export async function generateProof(input) {
         hypothesisId: 'C'
       }) + '\n');
       
-      if (!proveExists) {
-        throw new Error(`Prove binary not found at ${provePath}. Please build it with 'go build -o prove cmd/prove/main.go'`);
-      }
       if (!provingKeyExists) {
         throw new Error(`Proving key not found at ${provingKeyPath}. Please run 'go run cmd/generate-verifier/main.go' to generate it`);
       }
       if (!ccsExists) {
         throw new Error(`Constraint system not found at ${ccsPath}. Please run 'go run cmd/generate-verifier/main.go' to generate it`);
       }
+      if (!proveGoExists) {
+        throw new Error(`Prove Go source not found at ${proveGoPath}`);
+      }
     } catch (logError) {
-      if (logError.message && (logError.message.includes('Prove binary not found') || 
-          logError.message.includes('Proving key not found') || 
-          logError.message.includes('Constraint system not found'))) {
+      if (logError.message && (logError.message.includes('Proving key not found') || 
+          logError.message.includes('Constraint system not found') ||
+          logError.message.includes('Prove Go source not found'))) {
         throw logError;
       }
     }
     // #endregion
 
+    // Use 'go run' instead of pre-built binary to avoid architecture mismatch issues
+    // This works on any platform where Go is installed
+    // Try the binary first, but fall back to 'go run' if it doesn't exist or fails
+    // Note: We'll try the binary first, but if it fails with exec format error, we'll catch it and use go run
+    let command = `${provePath} ${inputPath}`;
+    let useGoRun = false;
+    
+    // Check if we should use go run instead
+    if (!proveExists) {
+      command = `go run ${proveGoPath} ${inputPath}`;
+      useGoRun = true;
+    }
+    
+    // #region agent log
+    try {
+      appendFileSync(logPath, JSON.stringify({
+        location: 'proof-generator.js:140',
+        message: 'Executing prove command',
+        data: {
+          command,
+          usingGoRun: !proveExists,
+          cwd: projectRoot,
+        },
+        timestamp: Date.now(),
+        sessionId: 'debug-session',
+        runId: 'pre-fix',
+        hypothesisId: 'D'
+      }) + '\n');
+    } catch (logError) {}
+    // #endregion
+
     // Run proof generation
-    const { stdout, stderr } = await execAsync(`${provePath} ${inputPath}`, {
-      cwd: projectRoot,
-    });
+    let stdout, stderr;
+    try {
+      const result = await execAsync(command, {
+        cwd: projectRoot,
+      });
+      stdout = result.stdout;
+      stderr = result.stderr;
+    } catch (execError) {
+      // If binary execution fails with "Exec format error", try using go run instead
+      if (execError.message && execError.message.includes('Exec format error') && !useGoRun) {
+        // #region agent log
+        try {
+          appendFileSync(logPath, JSON.stringify({
+            location: 'proof-generator.js:165',
+            message: 'Binary exec format error, falling back to go run',
+            data: {
+              originalCommand: command,
+              error: execError.message,
+            },
+            timestamp: Date.now(),
+            sessionId: 'debug-session',
+            runId: 'pre-fix',
+            hypothesisId: 'E'
+          }) + '\n');
+        } catch (logError) {}
+        // #endregion
+        
+        // Fall back to go run
+        const goRunCommand = `go run ${proveGoPath} ${inputPath}`;
+        const result = await execAsync(goRunCommand, {
+          cwd: projectRoot,
+        });
+        stdout = result.stdout;
+        stderr = result.stderr;
+      } else {
+        throw execError;
+      }
+    }
 
     // #region agent log
     try {
