@@ -1,12 +1,20 @@
 const path = require('path');
+const fs = require('fs');
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  webpack: (config) => {
-    // Alias for SDK
+  webpack: (config, { isServer }) => {
+    // Alias for SDK - use absolute path
+    const sdkPath = path.resolve(__dirname, '../../packages/noah-sdk/dist/index.js');
+    const sdkExists = fs.existsSync(sdkPath);
+    
+    if (!sdkExists) {
+      console.warn(`⚠️  SDK not found at ${sdkPath}. Make sure to run 'npm run prebuild' first.`);
+    }
+    
     config.resolve.alias = {
       ...config.resolve.alias,
-      '@noah-protocol/sdk': path.resolve(__dirname, '../../packages/noah-sdk/dist/index.js'),
+      '@noah-protocol/sdk': sdkPath,
     };
     
     // Ensure peer dependencies are resolved from the app's node_modules first
