@@ -1,6 +1,6 @@
 {
-  "installCommand": "bash build-sdk.sh",
-  "buildCommand": "next build",
+  "installCommand": "npm install",
+  "buildCommand": "NEXT_PRIVATE_SKIP_TURBOPACK=1 next build",
   "framework": "nextjs",
   "rootDirectory": "examples/nextjs-example"
 }

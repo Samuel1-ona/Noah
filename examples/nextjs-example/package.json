@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "preinstall": "cd ../../packages/noah-sdk && npm install && npm run build",
     "prebuild": "cd ../../packages/noah-sdk && npm install && npm run build",
     "dev": "next dev --webpack",
     "build": "next build",
