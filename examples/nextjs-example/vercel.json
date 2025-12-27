@@ -1,5 +1,6 @@
 {
-  "buildCommand": "cd ../../packages/noah-sdk && npm install && npm run build && cd ../../examples/nextjs-example && npm install && next build",
+  "installCommand": "cd packages/noah-sdk && npm install && npm run build && cd ../../examples/nextjs-example && npm install",
+  "buildCommand": "next build",
   "framework": "nextjs"
 }
 
