@@ -19,7 +19,8 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@noah-protocol/sdk": ["../../packages/noah-sdk/dist/index"]
     }
   },
   "include": [

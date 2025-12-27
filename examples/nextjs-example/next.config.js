@@ -26,9 +26,8 @@ const nextConfig = {
     
     return config;
   },
-  // Turbopack configuration (Next.js 16+)
-  // Empty config silences the warning - webpack config will be used when --webpack flag is used
-  turbopack: {},
+  // Disable Turbopack to use webpack (required for SDK alias to work)
+  // This is set via NEXT_PRIVATE_SKIP_TURBOPACK environment variable in vercel.json
 };
 
 module.exports = nextConfig;
