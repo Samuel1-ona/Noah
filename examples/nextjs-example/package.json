@@ -6,7 +6,7 @@
     "preinstall": "cd ../../packages/noah-sdk && npm install && npm run build",
     "prebuild": "cd ../../packages/noah-sdk && npm install && npm run build",
     "dev": "next dev --webpack",
-    "build": "next build",
+    "build": "NEXT_USE_TURBOPACK=0 next build",
     "start": "next start",
     "lint": "eslint"
   },

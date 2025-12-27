@@ -1,7 +1,10 @@
 {
   "installCommand": "npm install",
-  "buildCommand": "NEXT_PRIVATE_SKIP_TURBOPACK=1 next build",
+  "buildCommand": "npm run build",
   "framework": "nextjs",
-  "rootDirectory": "examples/nextjs-example"
+  "rootDirectory": "examples/nextjs-example",
+  "env": {
+    "NEXT_USE_TURBOPACK": "0"
+  }
 }
 
