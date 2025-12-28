@@ -3,7 +3,6 @@ const path = require('path');
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Force webpack usage (Turbopack doesn't handle file: dependencies well)
-  // Set NEXT_PRIVATE_SKIP_TURBOPACK=1 in environment to disable Turbopack
   webpack: (config) => {
     // Alias for SDK - use absolute path as fallback
     const sdkPath = path.resolve(__dirname, '../../packages/noah-sdk/dist/index.js');
@@ -13,10 +12,8 @@ const nextConfig = {
     };
     return config;
   },
-  // Explicitly disable Turbopack in experimental config
-  experimental: {
-    turbo: undefined,
-  },
+  // Add empty turbopack config to silence the error (but we're forcing webpack via --webpack flag)
+  turbopack: {},
 };
 
 module.exports = nextConfig;
