@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
-import { ProtocolClient, UserClient } from '@noah-protocol/sdk';
+import { ProtocolClient, UserClient } from 'noah-protocol-sdk';
 import ProtocolSection from './components/ProtocolSection';
 import UserSection from './components/UserSection';
 import IssuerSection from './components/IssuerSection';

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { ethers } from 'ethers';
-import { ProtocolClient, useProtocol } from '@noah-protocol/sdk';
+import { ProtocolClient, useProtocol } from 'noah-protocol-sdk';
 
 interface ProtocolSectionProps {
   signer: ethers.Signer | null;

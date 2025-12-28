@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { ethers } from 'ethers';
-import { useUser } from '@noah-protocol/sdk';
+import { useUser } from 'noah-protocol-sdk';
 
 interface UserSectionProps {
   signer: ethers.Signer | null;

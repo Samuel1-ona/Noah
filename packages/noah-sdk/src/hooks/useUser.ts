@@ -82,13 +82,15 @@ export interface UseUserReturn {
       proof: ZKProof;
       publicSignals: string[];
       credentialHash: string;
-      protocolAddress: string;
+      protocolAddress?: string;
+      userAddress?: string;
     }) => void;
     mutateAsync: (params: {
       proof: ZKProof;
       publicSignals: string[];
       credentialHash: string;
-      protocolAddress: string;
+      protocolAddress?: string;
+      userAddress?: string;
     }) => Promise<TransactionResult>;
     isLoading: boolean;
     error: Error | null;

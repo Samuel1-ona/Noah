@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
-import { IssuerClient, generateCredentialHash } from '@noah-protocol/sdk';
+import { IssuerClient, generateCredentialHash } from 'noah-protocol-sdk';
 
 interface IssuerSectionProps {
   signer: ethers.Signer | null;

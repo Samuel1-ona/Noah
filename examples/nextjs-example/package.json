@@ -3,10 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "preinstall": "cd ../../packages/noah-sdk && npm install && npm run build",
-    "prebuild": "cd ../../packages/noah-sdk && npm install && npm run build",
-    "dev": "next dev --webpack",
-    "build": "next build --webpack",
+    "dev": "next dev",
+    "build": "next build",
     "start": "next start",
     "lint": "eslint"
   },
@@ -16,7 +14,7 @@
     "react-dom": "19.2.3",
     "ethers": "^6.9.0",
     "@tanstack/react-query": "^5.0.0",
-    "@noah-protocol/sdk": "file:../../packages/noah-sdk"
+    "noah-protocol-sdk": "^0.1.2"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
