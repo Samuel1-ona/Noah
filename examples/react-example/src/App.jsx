@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
-import { ProtocolClient, UserClient, IssuerClient, useProtocol, useUser, generateCredentialHash } from '@noah-protocol/sdk';
+import { ProtocolClient, UserClient, IssuerClient, useProtocol, useUser, generateCredentialHash } from 'noah-protocol-sdk';
 import './App.css';
 
 function App() {

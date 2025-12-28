@@ -10,12 +10,16 @@ export default defineConfig({
   plugins: [react],
   resolve: {
     alias: {
+      // Support both npm package and local development
       '@noah-protocol/sdk': resolve(__dirname, '../../packages/noah-sdk/dist/index.js'),
     },
   },
   server: {
     port: 5174,
     open: true,
+  },
+  build: {
+    outDir: 'dist',
   },
 });
 
