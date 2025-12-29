@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { ethers } from 'ethers';
 import { ProtocolClient, useProtocol } from 'noah-protocol-sdk';
+import { toast } from 'react-toastify';
 
 interface ProtocolSectionProps {
   signer: ethers.Signer | null;
@@ -33,9 +34,9 @@ export default function ProtocolSection({ signer, account }: ProtocolSectionProp
         jurisdictions: jurisdictions.split(',').map(j => j.trim()),
         requireAccredited,
       });
-      alert('Requirements set successfully!');
+      toast.success('Requirements set successfully!');
     } catch (error: any) {
-      alert(`Failed to set requirements: ${error.message}`);
+      toast.error(`Failed to set requirements: ${error.message}`);
     }
   };
 

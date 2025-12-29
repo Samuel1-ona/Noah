@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { ethers } from 'ethers';
 import { useUser } from 'noah-protocol-sdk';
+import { toast } from 'react-toastify';
 
 interface UserSectionProps {
   signer: ethers.Signer | null;
@@ -33,37 +34,37 @@ export default function UserSection({ signer, account }: UserSectionProps) {
 
   const handleCheckCredential = async () => {
     if (!credentialHash) {
-      alert('Please enter a credential hash');
+      toast.warning('Please enter a credential hash');
       return;
     }
 
     try {
       const isValid = await checkCredentialValidity.mutateAsync(credentialHash);
-      alert(isValid ? 'Credential is valid!' : 'Credential is invalid or revoked');
+      toast.success(isValid ? 'Credential is valid!' : 'Credential is invalid or revoked');
     } catch (error: any) {
-      alert(`Failed to check credential: ${error.message}`);
+      toast.error(`Failed to check credential: ${error.message}`);
     }
   };
 
   const handleGenerateProof = async () => {
     if (!protocolAddress || !credentialHash) {
-      alert('Please enter protocol address and credential hash');
+      toast.warning('Please enter protocol address and credential hash');
       return;
     }
 
     try {
       if (isLoadingRequirements) {
-        alert('Loading requirements, please wait...');
+        toast.info('Loading requirements, please wait...');
         return;
       }
 
       if (requirementsError) {
-        alert(`Failed to fetch requirements: ${requirementsError.message}. Please make sure the protocol address is correct and requirements are set.`);
+        toast.error(`Failed to fetch requirements: ${requirementsError.message}. Please make sure the protocol address is correct and requirements are set.`);
         return;
       }
 
       if (!protocolRequirements) {
-        alert('Could not fetch requirements. Please make sure the protocol address is correct and requirements are set.');
+        toast.error('Could not fetch requirements. Please make sure the protocol address is correct and requirements are set.');
         return;
       }
 
@@ -87,25 +88,22 @@ export default function UserSection({ signer, account }: UserSectionProps) {
         protocolAddress,
       });
 
-      alert(
-        `Proof generated successfully!\n\n` +
-        `Credential Hash: ${proof.credentialHash}\n` +
-        `Proof generated for protocol: ${protocolAddress}\n\n` +
-        `You can now verify and grant access using the button below.`
+      toast.success(
+        `Proof generated successfully! Credential Hash: ${proof.credentialHash.substring(0, 10)}... You can now verify and grant access.`
       );
     } catch (error: any) {
-      alert(`Failed to generate proof: ${error.message}`);
+      toast.error(`Failed to generate proof: ${error.message}`);
     }
   };
 
   const handleVerifyAndGrantAccess = async () => {
     if (!generatedProof) {
-      alert('Please generate a proof first');
+      toast.warning('Please generate a proof first');
       return;
     }
 
     if (!protocolAddress) {
-      alert('Please enter a protocol address');
+      toast.warning('Please enter a protocol address');
       return;
     }
 
@@ -118,16 +116,13 @@ export default function UserSection({ signer, account }: UserSectionProps) {
         userAddress: account || undefined,
       });
 
-      alert(
-        `Access granted successfully!\n\n` +
-        `Transaction: ${result.transactionHash}\n` +
-        `Protocol: ${generatedProof.protocolAddress}\n` +
-        `Credential Hash: ${generatedProof.credentialHash}`
+      toast.success(
+        `Access granted successfully! Transaction: ${result.transactionHash.substring(0, 10)}...`
       );
       
       setGeneratedProof(null);
     } catch (error: any) {
-      alert(`Failed to verify and grant access: ${error.message}`);
+      toast.error(`Failed to verify and grant access: ${error.message}`);
     }
   };
 

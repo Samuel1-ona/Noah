@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import { ProtocolClient, UserClient } from 'noah-protocol-sdk';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import ProtocolSection from './components/ProtocolSection';
 import UserSection from './components/UserSection';
 import IssuerSection from './components/IssuerSection';
@@ -16,7 +18,7 @@ export default function Home() {
   const connectWallet = async () => {
     try {
       if (typeof window.ethereum === 'undefined') {
-        alert('MetaMask is not installed. Please install MetaMask to continue.');
+        toast.error('MetaMask is not installed. Please install MetaMask to continue.');
         return;
       }
 
@@ -28,9 +30,10 @@ export default function Home() {
       setSigner(signer);
       setAccount(address);
       setConnected(true);
+      toast.success('Wallet connected successfully!');
     } catch (error: any) {
       console.error('Failed to connect wallet:', error);
-      alert(`Failed to connect wallet: ${error.message}`);
+      toast.error(`Failed to connect wallet: ${error.message}`);
     }
   };
 
