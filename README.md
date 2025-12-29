@@ -1,9 +1,3 @@
-<div align="center">
-
-![NOAH Logo](noah-logo.png)
-
-</div>
-
 # NOAH: Privacy-Preserving KYC for DeFi
 
 **NOAH** (Network for On-chain Authenticated Handshakes) is a zero-knowledge proof-based Know Your Customer (KYC) system that enables DeFi protocols to verify user eligibility without exposing personal information. Users can prove they meet compliance requirements (age, jurisdiction, accreditation status) while maintaining complete privacy.
@@ -21,6 +15,7 @@
 - [User Guide: Accessing DeFi Protocols](#user-guide-accessing-defi-protocols)
 - [Issuer Guide: Managing Credentials](#issuer-guide-managing-credentials)
 - [Getting Started](#getting-started)
+  - [SDK Installation & Deployment](#sdk-installation--deployment)
   - [SDK Examples](#sdk-examples)
 - [Development](#development)
 - [API Reference](#api-reference)
@@ -2577,6 +2572,189 @@ go run cmd/prove/main.go build/test-input.json
 ```
 
 3. **Proof saved to** `build/proof.json`
+
+### SDK Installation & Deployment
+
+The NOAH SDK is published as an npm package and can be easily installed in your project.
+
+#### Installation
+
+Install the SDK using npm, yarn, or pnpm:
+
+```bash
+# Using npm
+npm install noah-protocol-sdk ethers
+
+# Using yarn
+yarn add noah-protocol-sdk ethers
+
+# Using pnpm
+pnpm add noah-protocol-sdk ethers
+```
+
+#### Peer Dependencies
+
+The SDK requires the following peer dependencies:
+
+- **`ethers`** (^6.0.0) - Required for blockchain interactions
+- **`react`** (^18.0.0 || ^19.0.0) - Optional, only needed for React hooks
+- **`react-dom`** (^18.0.0 || ^19.0.0) - Optional, only needed for React hooks
+- **`@tanstack/react-query`** (^5.0.0) - Optional, only needed for React hooks
+
+#### Quick Start
+
+**For DeFi Protocols:**
+
+```typescript
+import { ProtocolClient } from 'noah-protocol-sdk';
+import { ethers } from 'ethers';
+
+// Connect wallet
+const provider = new ethers.BrowserProvider(window.ethereum);
+const signer = await provider.getSigner();
+
+// Initialize protocol client
+const protocol = new ProtocolClient(signer);
+
+// Set KYC requirements
+await protocol.setRequirements({
+  minAge: 21,
+  jurisdictions: ['US', 'UK', 'CA'],
+  requireAccredited: true
+});
+```
+
+**For End Users:**
+
+```typescript
+import { UserClient } from 'noah-protocol-sdk';
+import { ethers } from 'ethers';
+
+// Connect wallet
+const provider = new ethers.BrowserProvider(window.ethereum);
+const signer = await provider.getSigner();
+
+// Initialize user client
+// API base URL is configured via environment variables (see .env.example)
+const user = new UserClient(signer, {
+  apiBaseUrl: process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000/api/v1'
+});
+
+// Generate proof and verify access
+const proof = await user.generateProof({
+  credential: {
+    credentialHash: '0x...',
+    age: 25,
+    jurisdiction: 'US',
+    accredited: 1
+  },
+  requirements: {
+    protocolAddress: '0x...',
+    minAge: 21,
+    allowedJurisdictions: ['US', 'UK'],
+    requireAccredited: true
+  }
+});
+
+await user.verifyAndGrantAccess({
+  proof: proof.proof,
+  publicSignals: proof.publicSignals,
+  credentialHash: proof.credentialHash,
+  protocolAddress: '0x...'
+});
+```
+
+#### Package Information
+
+- **Package Name**: `noah-protocol-sdk`
+- **Current Version**: `0.1.2`
+- **License**: MIT
+- **Repository**: [GitHub Repository](#)
+- **npm Registry**: [npmjs.com/package/noah-protocol-sdk](https://www.npmjs.com/package/noah-protocol-sdk)
+
+#### TypeScript Support
+
+The SDK is written in TypeScript and includes full type definitions. No additional `@types` package is required.
+
+```typescript
+import { ProtocolClient, UserClient, IssuerClient } from 'noah-protocol-sdk';
+import type { Requirements, ProofResult, TransactionResult } from 'noah-protocol-sdk';
+```
+
+#### React Hooks (Optional)
+
+If you're using React, you can use the provided hooks for easier integration:
+
+```typescript
+import { useProtocol, useUser, useCredentials } from 'noah-protocol-sdk';
+
+function MyComponent() {
+  const { requirements, setRequirements, hasAccess } = useProtocol(signer);
+  const { generateProof, verifyAndGrantAccess } = useUser(signer);
+  
+  // Use the hooks in your component
+}
+```
+
+**Note**: React hooks require `react`, `react-dom`, and `@tanstack/react-query` to be installed.
+
+#### Configuration
+
+The SDK can be configured with custom contract addresses and API endpoints:
+
+```typescript
+const protocol = new ProtocolClient(signer, {
+  protocolAccessControlAddress: '0xCustomAddress...',
+  provider: customProvider
+});
+
+const user = new UserClient(signer, {
+  apiBaseUrl: 'https://api.noah.xyz/api/v1',
+  contractAddresses: {
+    protocolAccessControl: '0x...',
+    credentialRegistry: '0x...',
+    zkVerifier: '0x...'
+  }
+});
+```
+
+#### Environment Variables
+
+For production deployments, configure the API base URL via environment variables. Each example project includes a `.env.example` file that you can copy and customize:
+
+```bash
+# Copy the example file
+cp .env.example .env
+
+# Edit .env with your production values
+```
+
+**Example `.env.example` files:**
+- **Next.js Example**: `examples/nextjs-example/.env.example`
+- **React Example**: `examples/react-example/.env.example`
+- **Frontend**: `frontend/.env.example`
+
+**Environment Variable Names:**
+- **Next.js**: `NEXT_PUBLIC_API_BASE_URL`
+- **Vite/React**: `VITE_API_BASE_URL`
+
+**Example values:**
+```bash
+# For production (Render deployment)
+NEXT_PUBLIC_API_BASE_URL=https://noah-abw7.onrender.com
+VITE_API_BASE_URL=https://noah-abw7.onrender.com
+
+# For local development
+NEXT_PUBLIC_API_BASE_URL=http://localhost:3000/api/v1
+VITE_API_BASE_URL=http://localhost:3000/api/v1
+```
+
+#### Documentation
+
+For complete SDK documentation, API reference, and advanced usage examples, see:
+
+- **SDK README**: [`packages/noah-sdk/README.md`](packages/noah-sdk/README.md)
+- **SDK Examples**: [`examples/README.md`](examples/README.md)
 
 ### SDK Examples
 
