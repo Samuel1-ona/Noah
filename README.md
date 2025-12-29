@@ -1,3 +1,9 @@
+<div align="center">
+
+![NOAH Logo](noah-logo.png)
+
+</div>
+
 # NOAH: Privacy-Preserving KYC for DeFi
 
 **NOAH** (Network for On-chain Authenticated Handshakes) is a zero-knowledge proof-based Know Your Customer (KYC) system that enables DeFi protocols to verify user eligibility without exposing personal information. Users can prove they meet compliance requirements (age, jurisdiction, accreditation status) while maintaining complete privacy.

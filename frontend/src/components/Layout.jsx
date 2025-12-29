@@ -17,9 +17,20 @@ function Layout({ children }) {
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <AppBar position="static">
         <Toolbar>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            NOAH
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexGrow: 1 }}>
+            <img 
+              src="/noah-logo.png" 
+              alt="NOAH Logo" 
+              style={{ height: '40px', width: 'auto' }}
+              onError={(e) => {
+                // Fallback if logo not found
+                e.currentTarget.style.display = 'none';
+              }}
+            />
+            <Typography variant="h6" component="div">
+              NOAH
+            </Typography>
+          </Box>
           <Box sx={{ display: 'flex', gap: 1, mr: 2 }}>
             {navItems.map((item) => (
               <Button

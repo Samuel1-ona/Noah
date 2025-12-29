@@ -53,6 +53,17 @@ function App() {
   return (
     <div className="app">
       <header className="app-header">
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
+          <img 
+            src="/noah-logo.png" 
+            alt="NOAH Logo" 
+            style={{ height: '80px', width: 'auto' }}
+            onError={(e) => {
+              // Fallback if logo not found
+              e.currentTarget.style.display = 'none';
+            }}
+          />
+        </div>
         <h1>🔐 NOAH SDK - React Example</h1>
         <p>Privacy-Preserving KYC for DeFi</p>
       </header>

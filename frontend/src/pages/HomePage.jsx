@@ -39,6 +39,17 @@ function HomePage() {
         }}
       >
         <Container maxWidth="lg">
+          <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
+            <img 
+              src="/noah-logo.png" 
+              alt="NOAH Logo" 
+              style={{ height: '120px', width: 'auto' }}
+              onError={(e) => {
+                // Fallback if logo not found
+                e.currentTarget.style.display = 'none';
+              }}
+            />
+          </Box>
           <Typography variant="h2" component="h1" gutterBottom align="center" fontWeight="bold">
             NOAH
           </Typography>
