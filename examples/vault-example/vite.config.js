@@ -25,31 +25,10 @@ export default defineConfig({
       transformMixedEsModules: true,
     },
     rollupOptions: {
-      external: (id) => {
-        // Don't externalize @tanstack/react-query - it should be bundled
-        return false;
-      },
       output: {
-        manualChunks: (id) => {
-          // Split vendor chunks for better caching
-          if (id.includes('node_modules')) {
-            // React, React DOM, and React Query should be together
-            // This ensures React is available when react-query loads
-            if (id.includes('react') || id.includes('react-dom') || id.includes('@tanstack/react-query')) {
-              return 'react-vendor';
-            }
-            // MUI components
-            if (id.includes('@mui/')) {
-              return 'mui';
-            }
-            // Ethers.js
-            if (id.includes('/ethers') || id.includes('\\ethers')) {
-              return 'ethers';
-            }
-            // Everything else goes to vendor
-            return 'vendor';
-          }
-        },
+        // Let Vite handle chunking automatically to avoid circular dependencies
+        // This ensures proper initialization order
+        manualChunks: undefined,
       },
     },
     chunkSizeWarningLimit: 1000, // Increase limit to 1MB
