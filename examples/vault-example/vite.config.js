@@ -12,6 +12,8 @@ export default defineConfig({
     alias: {
       // Support both npm package and local development
       'noah-protocol-sdk': resolve(__dirname, '../../packages/noah-sdk/dist/index.js'),
+      // Ensure @tanstack/react-query resolves correctly
+      '@tanstack/react-query': resolve(__dirname, 'node_modules/@tanstack/react-query'),
     },
   },
   server: {
@@ -20,6 +22,38 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
+    commonjsOptions: {
+      include: [/node_modules/],
+      transformMixedEsModules: true,
+    },
+    rollupOptions: {
+      external: (id) => {
+        // Don't externalize @tanstack/react-query - it should be bundled
+        return false;
+      },
+      output: {
+        manualChunks: (id) => {
+          // Split vendor chunks for better caching
+          if (id.includes('node_modules')) {
+            if (id.includes('@mui')) {
+              return 'mui';
+            }
+            if (id.includes('@tanstack')) {
+              return 'react-query';
+            }
+            if (id.includes('ethers')) {
+              return 'ethers';
+            }
+            return 'vendor';
+          }
+        },
+      },
+    },
+    chunkSizeWarningLimit: 1000, // Increase limit to 1MB
+  },
+  optimizeDeps: {
+    include: ['@tanstack/react-query', 'react', 'react-dom'],
+    exclude: [],
   },
   // Allow importing JSON files
   assetsInclude: ['**/*.json'],

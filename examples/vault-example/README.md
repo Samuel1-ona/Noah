@@ -102,6 +102,10 @@ VITE_API_BASE_URL=https://noah-abw7.onrender.com
 
 You can copy `.env.example` to `.env` and update the values as needed.
 
+### Deployment to Vercel
+
+For deploying to Vercel, see [VERCEL_DEPLOYMENT.md](./VERCEL_DEPLOYMENT.md) for detailed instructions and required environment variables.
+
 ### Step 5: Start Development Server
 
 ```bash
