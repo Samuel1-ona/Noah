@@ -1,0 +1,10 @@
+{
+  "network": "mantle-sepolia",
+  "chainId": 5003,
+  "contracts": {
+    "Vault": "0x32fbA5030A93652CDe70A125070cB19255513809",
+    "ProtocolAccessControl": "0xF599F186aC6fD2a9bECd9eDEE91fd58D3Dc3dB0A",
+    "CredentialRegistry": "0x5d311f246ef87d24B045D961aA6da62a758514f7"
+  }
+}
+

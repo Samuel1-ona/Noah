@@ -54,3 +54,6 @@ console.log('📋 Use this credential hash to register the credential:');
 console.log(`   ${result.credentialHash}`);
 
 
+
+
+

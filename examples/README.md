@@ -59,6 +59,22 @@ A full-stack Next.js application with TypeScript, demonstrating both client and 
 - Tailwind CSS
 - React Query
 
+### 3. Vault Example (`vault-example/`)
+A complete DeFi vault integration example showing how to build a KYC-gated vault using NOAH.
+
+**Best for:**
+- DeFi protocol integration
+- Understanding complete end-to-end flows
+- Learning contract integration patterns
+- Production-ready vault implementations
+
+**Technologies:**
+- React 18
+- Vite
+- React Query
+- ethers.js
+- Solidity (Vault contract)
+
 ## Quick Start
 
 ### Prerequisites
@@ -90,6 +106,9 @@ cd react-example
 
 # OR for Next.js example
 cd nextjs-example
+
+# OR for Vault example
+cd vault-example
 ```
 
 ### Step 3: Install Dependencies
@@ -565,6 +584,48 @@ export default function ProtocolPage() {
 ```
 
 See [`nextjs-example/README.md`](./nextjs-example/README.md) for detailed setup instructions.
+
+### Vault Example
+
+**Location:** `vault-example/`
+
+**Features:**
+- ✅ Complete vault contract with KYC integration
+- ✅ Deposit and withdrawal functionality
+- ✅ Real-time balance tracking
+- ✅ Credential verification flow
+- ✅ Access control demonstration
+
+**Setup:**
+
+```bash
+cd vault-example
+npm install
+npm run dev
+```
+
+**Key Components:**
+
+1. **Vault.sol**: Smart contract demonstrating NOAH integration
+2. **UserVerification**: Component for credential verification
+3. **VaultComponent**: Component for vault interactions
+
+**Code Example:**
+
+```jsx
+import { useUser } from 'noah-protocol-sdk';
+
+function VaultApp({ signer, vaultAddress }) {
+  const { generateProof, verifyAndGrantAccess } = useUser(signer, {
+    protocolAddress: vaultAddress,
+    apiBaseUrl: 'http://localhost:3000/api/v1'
+  });
+
+  // Verify credentials and interact with vault
+}
+```
+
+See [`vault-example/README.md`](./vault-example/README.md) for detailed setup instructions.
 
 ## Integration Guide
 
