@@ -33,13 +33,14 @@ export default defineConfig({
         manualChunks: (id) => {
           // Split vendor chunks for better caching
           if (id.includes('node_modules')) {
+            // React, React DOM, and React Query should be together
+            // This ensures React is available when react-query loads
+            if (id.includes('react') || id.includes('react-dom') || id.includes('@tanstack/react-query')) {
+              return 'react-vendor';
+            }
             // MUI components
             if (id.includes('@mui/')) {
               return 'mui';
-            }
-            // React Query
-            if (id.includes('@tanstack/react-query')) {
-              return 'react-query';
             }
             // Ethers.js
             if (id.includes('/ethers') || id.includes('\\ethers')) {
