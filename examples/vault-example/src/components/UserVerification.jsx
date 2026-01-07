@@ -30,6 +30,7 @@ import {
   Info,
   Lock,
   AutoAwesome,
+  Refresh,
 } from '@mui/icons-material';
 import { Avatar } from '@mui/material';
 
@@ -62,74 +63,90 @@ export default function UserVerification({ signer, account, vaultAddress, onAcce
   const [loadingRegisteredCredential, setLoadingRegisteredCredential] = useState(false);
   const [lastLoadedCredentialHash, setLastLoadedCredentialHash] = useState(null);
 
-  // Load registered credential hash from localStorage when account changes or when component becomes visible
+  // Load registered credential hash from contract (source of truth) - works across all systems
   useEffect(() => {
     const loadRegisteredCredential = async () => {
-      if (!account || !signer) {
+      if (!account || !signer || !vaultAddress) {
         return;
       }
 
       setLoadingRegisteredCredential(true);
       
-      // Small delay to ensure localStorage is updated after registration
-      await new Promise(resolve => setTimeout(resolve, 500));
       try {
         // PRIORITY 1: Check contract first (source of truth) - this works across all systems
-        if (vaultAddress) {
-          try {
-            const PROTOCOL_ACCESS_CONTROL_ABI = [
-              'function userCredentials(address protocol, address user) view returns (bytes32)'
-            ];
-            const protocolAccessControlAddress = await getContractAddress('ProtocolAccessControl');
-            
-            if (protocolAccessControlAddress) {
-              const contract = new ethers.Contract(protocolAccessControlAddress, PROTOCOL_ACCESS_CONTROL_ABI, signer);
-              const storedHash = await contract.userCredentials(vaultAddress, account);
-              
-              // Check if stored hash is not empty (0x0000...)
-              if (storedHash && storedHash !== '0x0000000000000000000000000000000000000000000000000000000000000000') {
-                try {
-                  const isValid = await checkCredentialValidity.mutateAsync(storedHash);
-                  if (isValid) {
-                    // Found valid credential hash from contract - this is the source of truth
-                    // Only show toast if this is a new credential hash
-                    if (storedHash !== lastLoadedCredentialHash && storedHash !== credentialHash) {
-                      toast.success('✓ Loaded credential hash from protocol');
-                      setLastLoadedCredentialHash(storedHash);
-                    }
-                    setCredentialHash(storedHash);
-                    setCredentialValid(true);
-                    setAutoGenerateHash(false);
-                    
-                    // Also save to localStorage for faster loading next time
-                    try {
-                      const registeredCredentials = JSON.parse(localStorage.getItem('registeredCredentials') || '{}');
-                      if (!registeredCredentials[account]) {
-                        registeredCredentials[account] = [];
-                      }
-                      if (!registeredCredentials[account].includes(storedHash)) {
-                        registeredCredentials[account].push(storedHash);
-                        localStorage.setItem('registeredCredentials', JSON.stringify(registeredCredentials));
-                      }
-                    } catch (localStorageError) {
-                      console.error('Error saving to localStorage:', localStorageError);
-                    }
-                    
-                    setLoadingRegisteredCredential(false);
-                    return;
-                  }
-                } catch (validityError) {
-                  console.log('Credential from contract is not valid:', validityError.message);
-                }
-              }
-            }
-          } catch (error) {
-            // Contract call failed, continue with localStorage check
-            console.log('Could not load credential from contract:', error.message);
-          }
+        console.log('Loading credential hash from contract...', { vaultAddress, account });
+        
+        const PROTOCOL_ACCESS_CONTROL_ABI = [
+          'function userCredentials(address protocol, address user) view returns (bytes32)'
+        ];
+        const protocolAccessControlAddress = await getContractAddress('ProtocolAccessControl');
+        
+        if (!protocolAccessControlAddress) {
+          console.warn('ProtocolAccessControl address not found');
+          setLoadingRegisteredCredential(false);
+          return;
         }
+        
+        const contract = new ethers.Contract(protocolAccessControlAddress, PROTOCOL_ACCESS_CONTROL_ABI, signer);
+        const storedHash = await contract.userCredentials(vaultAddress, account);
+        
+        console.log('Credential hash from contract:', {
+          storedHash,
+          isEmpty: storedHash === '0x0000000000000000000000000000000000000000000000000000000000000000',
+          length: storedHash?.length
+        });
+        
+        // Check if stored hash is not empty (0x0000...)
+        if (storedHash && storedHash !== '0x0000000000000000000000000000000000000000000000000000000000000000') {
+          try {
+            const isValid = await checkCredentialValidity.mutateAsync(storedHash);
+            if (isValid) {
+              // Found valid credential hash from contract - this is the source of truth
+              console.log('✓ Valid credential hash found in contract:', storedHash);
+              
+              // Only show toast if this is a new credential hash
+              if (storedHash !== lastLoadedCredentialHash && storedHash !== credentialHash) {
+                toast.success('✓ Loaded credential hash from vault');
+                setLastLoadedCredentialHash(storedHash);
+              }
+              
+              setCredentialHash(storedHash);
+              setCredentialValid(true);
+              setAutoGenerateHash(false);
+              
+              // Also save to localStorage for faster loading next time
+              try {
+                const registeredCredentials = JSON.parse(localStorage.getItem('registeredCredentials') || '{}');
+                if (!registeredCredentials[account]) {
+                  registeredCredentials[account] = [];
+                }
+                if (!registeredCredentials[account].includes(storedHash)) {
+                  registeredCredentials[account].push(storedHash);
+                  localStorage.setItem('registeredCredentials', JSON.stringify(registeredCredentials));
+                  console.log('✓ Saved credential hash to localStorage');
+                }
+              } catch (localStorageError) {
+                console.error('Error saving to localStorage:', localStorageError);
+              }
+              
+              setLoadingRegisteredCredential(false);
+              return;
+            } else {
+              console.warn('Credential from contract is not valid:', storedHash);
+            }
+          } catch (validityError) {
+            console.error('Error validating credential from contract:', validityError);
+          }
+        } else {
+          console.log('No credential hash found in contract for this vault and user');
+        }
+      } catch (error) {
+        // Contract call failed, continue with localStorage check
+        console.error('Error loading credential from contract:', error);
+      }
 
-        // PRIORITY 2: Check localStorage for registered credentials (fallback)
+      // PRIORITY 2: Check localStorage for registered credentials (fallback)
+      try {
         const registeredCredentials = JSON.parse(localStorage.getItem('registeredCredentials') || '{}');
         const userCredentials = registeredCredentials[account] || [];
 
@@ -157,40 +174,38 @@ export default function UserVerification({ signer, account, vaultAddress, onAcce
             }
           }
         }
-
-        // If no registered credential found, fall back to auto-generation
-        if (autoGenerateHash) {
-          try {
-            const result = generateCredentialHash({
-              userAddress: account,
-              age: credentialAge,
-              jurisdiction: credentialJurisdiction,
-              accredited: false,
-              timestamp: credentialTimestamp,
-            });
-            setCredentialHash(result.credentialHash);
-            setCredentialValid(null);
-          } catch (error) {
-            console.error('Error generating credential hash:', error);
-          }
-        }
       } catch (error) {
-        console.error('Error loading registered credential:', error);
-      } finally {
-        setLoadingRegisteredCredential(false);
+        console.error('Error loading from localStorage:', error);
       }
+
+      // If no registered credential found, fall back to auto-generation
+      if (autoGenerateHash) {
+        try {
+          const result = generateCredentialHash({
+            userAddress: account,
+            age: credentialAge,
+            jurisdiction: credentialJurisdiction,
+            accredited: false,
+            timestamp: credentialTimestamp,
+          });
+          setCredentialHash(result.credentialHash);
+          setCredentialValid(null);
+        } catch (error) {
+          console.error('Error generating credential hash:', error);
+        }
+      }
+      
+      setLoadingRegisteredCredential(false);
     };
 
+    // Load immediately when component mounts or dependencies change
     loadRegisteredCredential();
     
     // Listen for storage events to reload when credential is registered in another tab/window
     const handleStorageChange = (e) => {
-      if (e.key === 'registeredCredentials' && account) {
-        console.log('Registered credentials updated, reloading...');
-        // Only reload if we don't already have a valid credential hash loaded
-        if (!credentialHash || credentialValid === false) {
-          loadRegisteredCredential();
-        }
+      if (e.key === 'registeredCredentials' && account && vaultAddress) {
+        console.log('Registered credentials updated, reloading from contract...');
+        loadRegisteredCredential();
       }
     };
     
@@ -198,26 +213,22 @@ export default function UserVerification({ signer, account, vaultAddress, onAcce
     
     // Also trigger a custom event when localStorage is updated in the same tab
     const handleCustomStorageUpdate = () => {
-      if (account) {
-        console.log('Registered credentials updated (same tab), reloading...');
-        // Only reload if we don't already have a valid credential hash loaded
-        if (!credentialHash || credentialValid === false) {
-          loadRegisteredCredential();
-        }
+      if (account && vaultAddress) {
+        console.log('Registered credentials updated (same tab), reloading from contract...');
+        loadRegisteredCredential();
       }
     };
     
     window.addEventListener('credentialRegistered', handleCustomStorageUpdate);
     
-    // Periodic check (every 10 seconds) to catch updates - less frequent to avoid spam
+    // Periodic check (every 15 seconds) to catch updates from other systems
     const interval = setInterval(() => {
-      if (account && signer && !loadingRegisteredCredential) {
-        // Only check if we don't have a valid credential already
-        if (!credentialHash || credentialValid === false) {
-          loadRegisteredCredential();
-        }
+      if (account && signer && vaultAddress && !loadingRegisteredCredential) {
+        // Always check contract to ensure we have the latest credential hash
+        // This is important when accessing from different systems
+        loadRegisteredCredential();
       }
-    }, 10000); // Increased from 3 seconds to 10 seconds to reduce spam
+    }, 15000); // Check every 15 seconds for updates
     
     return () => {
       window.removeEventListener('storage', handleStorageChange);
@@ -327,9 +338,32 @@ export default function UserVerification({ signer, account, vaultAddress, onAcce
       return;
     }
 
-    if (credentialValid === false) {
-      toast.error('Credential is not registered. Please register it first.');
+    // Wait for credential validation to complete if it's still checking
+    if (checkingCredential) {
+      toast.warning('Please wait while we verify your credential...');
       return;
+    }
+
+    // Ensure credential is valid before generating proof
+    if (credentialValid === false) {
+      toast.error('Credential is not registered. Please register it first in the Admin Operations tab.');
+      return;
+    }
+
+    // If credential validity is unknown (null), check it first
+    if (credentialValid === null && credentialHash) {
+      toast.info('Verifying credential validity...');
+      try {
+        const isValid = await checkCredentialValidity.mutateAsync(credentialHash);
+        if (!isValid) {
+          toast.error('Credential is not registered. Please register it first in the Admin Operations tab.');
+          return;
+        }
+        setCredentialValid(true);
+      } catch (error) {
+        toast.error('Failed to verify credential. Please ensure it is registered.');
+        return;
+      }
     }
 
     if (!isEligible.age || !isEligible.jurisdiction) {
@@ -476,25 +510,39 @@ export default function UserVerification({ signer, account, vaultAddress, onAcce
 
   return (
     <Paper elevation={3} sx={{ p: 3 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-        <Avatar
-          src="/noah-logo.png"
-          alt="Noah Logo"
-          sx={{
-            width: 48,
-            height: 48,
-            borderRadius: 1.5,
-          }}
-          variant="rounded"
-        />
-        <Box>
-          <Typography variant="h5" component="h2" sx={{ fontWeight: 600 }}>
-            Verify Your Eligibility
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-            Powered by Noah Protocol
-          </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Avatar
+            src="/noah-logo.png"
+            alt="Noah Logo"
+            sx={{
+              width: 48,
+              height: 48,
+              borderRadius: 1.5,
+            }}
+            variant="rounded"
+          />
+          <Box>
+            <Typography variant="h5" component="h2" sx={{ fontWeight: 600 }}>
+              Verify Your Eligibility
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Powered by Noah Protocol
+            </Typography>
+          </Box>
         </Box>
+        <Button
+          variant="outlined"
+          size="small"
+          onClick={() => {
+            setLastLoadedCredentialHash(null);
+            loadRegisteredCredential();
+          }}
+          disabled={loadingRegisteredCredential || !vaultAddress || !account}
+          startIcon={<Refresh />}
+        >
+          Refresh
+        </Button>
       </Box>
 
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
@@ -590,7 +638,29 @@ export default function UserVerification({ signer, account, vaultAddress, onAcce
           />
           {autoGenerateHash && account && credentialHash && credentialValid === false && (
             <Alert severity="warning" sx={{ mt: 1 }}>
-              This credential hash needs to be registered by an issuer. Go to the <strong>Admin Operations</strong> tab to register it.
+              <Typography variant="subtitle2" gutterBottom>
+                ⚠️ Credential Not Registered
+              </Typography>
+              <Typography variant="body2">
+                This credential hash needs to be registered by an issuer before you can generate a proof.
+              </Typography>
+              <Typography variant="body2" sx={{ mt: 1, fontWeight: 600 }}>
+                Steps to register:
+              </Typography>
+              <Typography variant="body2" component="ol" sx={{ mt: 0.5, pl: 2 }}>
+                <li>Go to the <strong>Admin Operations</strong> tab</li>
+                <li>Use the <strong>Issuer Operations</strong> section</li>
+                <li>Copy the credential hash above</li>
+                <li>Paste it and click <strong>"Register Credential"</strong></li>
+                <li>Come back here to generate your proof</li>
+              </Typography>
+            </Alert>
+          )}
+          {credentialHash && credentialValid === null && !checkingCredential && (
+            <Alert severity="info" sx={{ mt: 1 }}>
+              <Typography variant="body2">
+                Verifying credential validity... Please wait or register it in Admin Operations if needed.
+              </Typography>
             </Alert>
           )}
         </Box>
@@ -657,11 +727,18 @@ export default function UserVerification({ signer, account, vaultAddress, onAcce
               !isEligible.age ||
               !isEligible.jurisdiction ||
               credentialValid === false ||
-              checkingCredential
+              checkingCredential ||
+              (credentialValid === null && credentialHash) // Disable if validity is unknown
             }
             fullWidth
           >
-            {generateProof.isLoading ? 'Generating Proof...' : 'Verify & Generate Proof'}
+            {generateProof.isLoading
+              ? 'Generating Proof...'
+              : credentialValid === false
+              ? 'Credential Not Registered'
+              : credentialValid === null && credentialHash
+              ? 'Validating Credential...'
+              : 'Verify & Generate Proof'}
           </Button>
 
           {generatedProof && (
