@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import { useUser, generateCredentialHash } from 'noah-protocol-sdk';
 import { toast } from 'react-toastify';
-import { getCredentialHash } from '../config/contracts';
+import { getCredentialHash, getContractAddress } from '../config/contracts';
 import {
   Paper,
   Typography,
@@ -74,7 +74,62 @@ export default function UserVerification({ signer, account, vaultAddress, onAcce
       // Small delay to ensure localStorage is updated after registration
       await new Promise(resolve => setTimeout(resolve, 500));
       try {
-        // Check localStorage for registered credentials
+        // PRIORITY 1: Check contract first (source of truth) - this works across all systems
+        if (vaultAddress) {
+          try {
+            const PROTOCOL_ACCESS_CONTROL_ABI = [
+              'function userCredentials(address protocol, address user) view returns (bytes32)'
+            ];
+            const protocolAccessControlAddress = await getContractAddress('ProtocolAccessControl');
+            
+            if (protocolAccessControlAddress) {
+              const contract = new ethers.Contract(protocolAccessControlAddress, PROTOCOL_ACCESS_CONTROL_ABI, signer);
+              const storedHash = await contract.userCredentials(vaultAddress, account);
+              
+              // Check if stored hash is not empty (0x0000...)
+              if (storedHash && storedHash !== '0x0000000000000000000000000000000000000000000000000000000000000000') {
+                try {
+                  const isValid = await checkCredentialValidity.mutateAsync(storedHash);
+                  if (isValid) {
+                    // Found valid credential hash from contract - this is the source of truth
+                    // Only show toast if this is a new credential hash
+                    if (storedHash !== lastLoadedCredentialHash && storedHash !== credentialHash) {
+                      toast.success('✓ Loaded credential hash from protocol');
+                      setLastLoadedCredentialHash(storedHash);
+                    }
+                    setCredentialHash(storedHash);
+                    setCredentialValid(true);
+                    setAutoGenerateHash(false);
+                    
+                    // Also save to localStorage for faster loading next time
+                    try {
+                      const registeredCredentials = JSON.parse(localStorage.getItem('registeredCredentials') || '{}');
+                      if (!registeredCredentials[account]) {
+                        registeredCredentials[account] = [];
+                      }
+                      if (!registeredCredentials[account].includes(storedHash)) {
+                        registeredCredentials[account].push(storedHash);
+                        localStorage.setItem('registeredCredentials', JSON.stringify(registeredCredentials));
+                      }
+                    } catch (localStorageError) {
+                      console.error('Error saving to localStorage:', localStorageError);
+                    }
+                    
+                    setLoadingRegisteredCredential(false);
+                    return;
+                  }
+                } catch (validityError) {
+                  console.log('Credential from contract is not valid:', validityError.message);
+                }
+              }
+            }
+          } catch (error) {
+            // Contract call failed, continue with localStorage check
+            console.log('Could not load credential from contract:', error.message);
+          }
+        }
+
+        // PRIORITY 2: Check localStorage for registered credentials (fallback)
         const registeredCredentials = JSON.parse(localStorage.getItem('registeredCredentials') || '{}');
         const userCredentials = registeredCredentials[account] || [];
 
@@ -100,45 +155,6 @@ export default function UserVerification({ signer, account, vaultAddress, onAcce
               // Continue to next credential if this one is invalid
               console.log(`Credential ${hash} is not valid, trying next...`);
             }
-          }
-        }
-
-        // Also check if there's a credential hash stored in the contract for this protocol
-        if (vaultAddress) {
-          try {
-            const { ProtocolClient } = await import('noah-protocol-sdk');
-            const protocolClient = new ProtocolClient(signer);
-            // Note: getUserCredential might not be available in ProtocolClient, so we'll call the contract directly
-            const PROTOCOL_ACCESS_CONTROL_ABI = [
-              'function userCredentials(address protocol, address user) view returns (bytes32)'
-            ];
-            const { getContractAddress } = await import('../config/contracts');
-            const protocolAccessControlAddress = await getContractAddress('ProtocolAccessControl');
-            
-            if (protocolAccessControlAddress) {
-              const contract = new ethers.Contract(protocolAccessControlAddress, PROTOCOL_ACCESS_CONTROL_ABI, signer);
-              const storedHash = await contract.userCredentials(vaultAddress, account);
-              
-              // Check if stored hash is not empty (0x0000...)
-              if (storedHash && storedHash !== '0x0000000000000000000000000000000000000000000000000000000000000000') {
-                const isValid = await checkCredentialValidity.mutateAsync(storedHash);
-                if (isValid) {
-                  // Only show toast if this is a new credential hash
-                  if (storedHash !== lastLoadedCredentialHash && storedHash !== credentialHash) {
-                    toast.success('✓ Loaded credential hash from protocol');
-                    setLastLoadedCredentialHash(storedHash);
-                  }
-                  setCredentialHash(storedHash);
-                  setCredentialValid(true);
-                  setAutoGenerateHash(false);
-                  setLoadingRegisteredCredential(false);
-                  return;
-                }
-              }
-            }
-          } catch (error) {
-            // Contract call failed, continue with auto-generation
-            console.log('Could not load credential from contract:', error.message);
           }
         }
 
@@ -404,6 +420,49 @@ export default function UserVerification({ signer, account, vaultAddress, onAcce
       toast.info(`Transaction submitted: ${tx.hash}`);
       await tx.wait();
       toast.success(`Access granted! Transaction: ${tx.hash.substring(0, 10)}...`);
+      
+      // Save the credential hash to localStorage after successful verification
+      // This ensures it persists across sessions and different systems
+      const credentialHashToSave = generatedProof.credentialHash;
+      if (credentialHashToSave && account) {
+        try {
+          const registeredCredentials = JSON.parse(localStorage.getItem('registeredCredentials') || '{}');
+          if (!registeredCredentials[account]) {
+            registeredCredentials[account] = [];
+          }
+          // Add the credential hash if it's not already there
+          if (!registeredCredentials[account].includes(credentialHashToSave)) {
+            registeredCredentials[account].push(credentialHashToSave);
+            localStorage.setItem('registeredCredentials', JSON.stringify(registeredCredentials));
+            console.log('Saved credential hash to localStorage:', credentialHashToSave);
+          }
+          
+          // Also reload the credential hash from the contract to ensure it's synced
+          setTimeout(async () => {
+            try {
+              const protocolAccessControlAddress = await getContractAddress('ProtocolAccessControl');
+              if (protocolAccessControlAddress && vaultAddress) {
+                const PROTOCOL_ACCESS_CONTROL_ABI = [
+                  'function userCredentials(address protocol, address user) view returns (bytes32)'
+                ];
+                const contract = new ethers.Contract(protocolAccessControlAddress, PROTOCOL_ACCESS_CONTROL_ABI, signer);
+                const storedHash = await contract.userCredentials(vaultAddress, account);
+                
+                if (storedHash && storedHash !== '0x0000000000000000000000000000000000000000000000000000000000000000') {
+                  setCredentialHash(storedHash);
+                  setCredentialValid(true);
+                  setLastLoadedCredentialHash(storedHash);
+                  console.log('Reloaded credential hash from contract:', storedHash);
+                }
+              }
+            } catch (error) {
+              console.error('Error reloading credential hash from contract:', error);
+            }
+          }, 1000);
+        } catch (error) {
+          console.error('Error saving credential hash to localStorage:', error);
+        }
+      }
       
       setGeneratedProof(null);
       if (onAccessGranted) {
