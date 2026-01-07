@@ -10,8 +10,6 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      // Support both npm package and local development
-      'noah-protocol-sdk': resolve(__dirname, '../../packages/noah-sdk/dist/index.js'),
       // Ensure @tanstack/react-query resolves correctly
       '@tanstack/react-query': resolve(__dirname, 'node_modules/@tanstack/react-query'),
     },
@@ -35,15 +33,19 @@ export default defineConfig({
         manualChunks: (id) => {
           // Split vendor chunks for better caching
           if (id.includes('node_modules')) {
-            if (id.includes('@mui')) {
+            // MUI components
+            if (id.includes('@mui/')) {
               return 'mui';
             }
-            if (id.includes('@tanstack')) {
+            // React Query
+            if (id.includes('@tanstack/react-query')) {
               return 'react-query';
             }
-            if (id.includes('ethers')) {
+            // Ethers.js
+            if (id.includes('/ethers') || id.includes('\\ethers')) {
               return 'ethers';
             }
+            // Everything else goes to vendor
             return 'vendor';
           }
         },
