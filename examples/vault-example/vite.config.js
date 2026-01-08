@@ -10,7 +10,7 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      // Ensure @tanstack/react-query resolves correctly
+      // Ensure @tanstack/react-query resolves to the installed package
       '@tanstack/react-query': resolve(__dirname, 'node_modules/@tanstack/react-query'),
     },
   },
@@ -20,22 +20,12 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    commonjsOptions: {
-      include: [/node_modules/],
-      transformMixedEsModules: true,
-    },
-    rollupOptions: {
-      output: {
-        // Let Vite handle chunking automatically to avoid circular dependencies
-        // This ensures proper initialization order
-        manualChunks: undefined,
-      },
-    },
-    chunkSizeWarningLimit: 1000, // Increase limit to 1MB
   },
   optimizeDeps: {
     include: ['@tanstack/react-query', 'react', 'react-dom'],
-    exclude: [],
+  },
+  ssr: {
+    noExternal: ['@tanstack/react-query'],
   },
   // Allow importing JSON files
   assetsInclude: ['**/*.json'],
