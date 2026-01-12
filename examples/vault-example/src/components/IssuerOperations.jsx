@@ -69,13 +69,17 @@ export default function IssuerOperations({ signer, account }) {
       toast.success(`Credential registered! Transaction: ${result.transactionHash.substring(0, 10)}...`);
       
       // Store the registered credential hash in localStorage for auto-loading
+      // Note: We store just the hash here since we don't have metadata when registering manually
       try {
         const registeredCredentials = JSON.parse(localStorage.getItem('registeredCredentials') || '{}');
         if (!registeredCredentials[userAddress]) {
           registeredCredentials[userAddress] = [];
         }
-        // Add credential hash if not already in the list
-        if (!registeredCredentials[userAddress].includes(credentialHash)) {
+        // Check if credential already exists (as hash string or object)
+        const exists = registeredCredentials[userAddress].some(
+          cred => (typeof cred === 'string' ? cred : cred.hash) === credentialHash
+        );
+        if (!exists) {
           registeredCredentials[userAddress].push(credentialHash);
           localStorage.setItem('registeredCredentials', JSON.stringify(registeredCredentials));
           console.log('✅ Saved credential to localStorage for auto-loading');
@@ -166,17 +170,28 @@ export default function IssuerOperations({ signer, account }) {
       setGeneratedHash(result.credentialHash);
       setCredentialHash(result.credentialHash);
       
-      // If generating for the current user's account, save to localStorage for auto-loading
+      // If generating for the current user's account, save to localStorage for auto-loading with metadata
       if (genUserAddress.toLowerCase() === account?.toLowerCase()) {
         try {
           const registeredCredentials = JSON.parse(localStorage.getItem('registeredCredentials') || '{}');
           if (!registeredCredentials[genUserAddress]) {
             registeredCredentials[genUserAddress] = [];
           }
-          if (!registeredCredentials[genUserAddress].includes(result.credentialHash)) {
-            registeredCredentials[genUserAddress].push(result.credentialHash);
+          // Check if credential already exists
+          const exists = registeredCredentials[genUserAddress].some(
+            cred => (typeof cred === 'string' ? cred : cred.hash) === result.credentialHash
+          );
+          if (!exists) {
+            // Store credential with metadata for auto-loading
+            registeredCredentials[genUserAddress].push({
+              hash: result.credentialHash,
+              age: genAge,
+              jurisdiction: genJurisdiction,
+              accredited: genAccredited,
+              timestamp: Date.now()
+            });
             localStorage.setItem('registeredCredentials', JSON.stringify(registeredCredentials));
-            console.log('✅ Saved generated credential to localStorage for auto-loading');
+            console.log('✅ Saved generated credential with metadata to localStorage for auto-loading');
           }
         } catch (error) {
           console.error('Failed to save generated credential to localStorage:', error);

@@ -9,10 +9,6 @@ import {
   TextField,
   Button,
   Box,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   FormControlLabel,
   Checkbox,
   Alert,
@@ -35,12 +31,12 @@ import { Avatar } from '@mui/material';
 
 export default function UserVerification({ signer, account, vaultAddress, onAccessGranted }) {
   const [credentialHash, setCredentialHash] = useState('');
-  const [credentialAge, setCredentialAge] = useState(18);
-  const [credentialJurisdiction, setCredentialJurisdiction] = useState('US');
-  const [credentialTimestamp, setCredentialTimestamp] = useState(Date.now());
+  // Internal state for metadata (not shown in UI, extracted from registered credentials)
+  const [credentialMetadata, setCredentialMetadata] = useState(null); // { age, jurisdiction, accredited, timestamp }
   const [autoGenerateHash, setAutoGenerateHash] = useState(true);
   const [generatedProof, setGeneratedProof] = useState(null);
   const [isEligible, setIsEligible] = useState({ age: false, jurisdiction: false });
+  const [usingRegisteredCredential, setUsingRegisteredCredential] = useState(false);
   // Get API URL from environment variable only
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -80,24 +76,44 @@ export default function UserVerification({ signer, account, vaultAddress, onAcce
 
         if (userCredentials.length > 0) {
           // Try to find a valid registered credential
-          for (const hash of userCredentials) {
+          for (const cred of userCredentials) {
             try {
+              // Handle both old format (string) and new format (object with metadata)
+              const hash = typeof cred === 'string' ? cred : cred.hash;
+              const metadata = typeof cred === 'object' ? cred : null;
+              
               const isValid = await checkCredentialValidity.mutateAsync(hash);
               if (isValid) {
-                // Found a valid registered credential, use it
+                // Found a valid registered credential, use it with metadata if available
                 // Only show toast if this is a new credential hash
                 if (hash !== lastLoadedCredentialHash && hash !== credentialHash) {
-                  toast.success('✓ Loaded registered credential hash');
+                  toast.success('✓ Loaded registered credential (auto-filled)');
                   setLastLoadedCredentialHash(hash);
                 }
                 setCredentialHash(hash);
                 setCredentialValid(true);
                 setAutoGenerateHash(false); // Disable auto-generation when using registered credential
+                setUsingRegisteredCredential(true); // Mark that we're using a registered credential
+                
+                // Store metadata if available
+                if (metadata) {
+                  setCredentialMetadata({
+                    age: metadata.age,
+                    jurisdiction: metadata.jurisdiction,
+                    accredited: metadata.accredited,
+                    timestamp: metadata.timestamp || Date.now()
+                  });
+                } else {
+                  // If no metadata, we can't generate proof - need to register with metadata
+                  setCredentialMetadata(null);
+                }
+                
                 setLoadingRegisteredCredential(false);
                 return;
               }
             } catch (error) {
               // Continue to next credential if this one is invalid
+              const hash = typeof cred === 'string' ? cred : cred.hash;
               console.log(`Credential ${hash} is not valid, trying next...`);
             }
           }
@@ -123,14 +139,36 @@ export default function UserVerification({ signer, account, vaultAddress, onAcce
               if (storedHash && storedHash !== '0x0000000000000000000000000000000000000000000000000000000000000000') {
                 const isValid = await checkCredentialValidity.mutateAsync(storedHash);
                 if (isValid) {
+                  // Check if we have metadata in localStorage for this hash
+                  const registeredCredentials = JSON.parse(localStorage.getItem('registeredCredentials') || '{}');
+                  const userCreds = registeredCredentials[account] || [];
+                  const credWithMetadata = userCreds.find(
+                    cred => (typeof cred === 'string' ? cred : cred.hash) === storedHash
+                  );
+                  
                   // Only show toast if this is a new credential hash
                   if (storedHash !== lastLoadedCredentialHash && storedHash !== credentialHash) {
-                    toast.success('✓ Loaded credential hash from protocol');
+                    toast.success('✓ Loaded credential hash from protocol' + (credWithMetadata && typeof credWithMetadata === 'object' ? ' (auto-filled)' : ''));
                     setLastLoadedCredentialHash(storedHash);
                   }
                   setCredentialHash(storedHash);
                   setCredentialValid(true);
                   setAutoGenerateHash(false);
+                  setUsingRegisteredCredential(true);
+                  
+                  // Store metadata if available
+                  if (credWithMetadata && typeof credWithMetadata === 'object') {
+                    setCredentialMetadata({
+                      age: credWithMetadata.age,
+                      jurisdiction: credWithMetadata.jurisdiction,
+                      accredited: credWithMetadata.accredited,
+                      timestamp: credWithMetadata.timestamp || Date.now()
+                    });
+                  } else {
+                    // If no metadata, we can't generate proof - need to register with metadata
+                    setCredentialMetadata(null);
+                  }
+                  
                   setLoadingRegisteredCredential(false);
                   return;
                 }
@@ -145,18 +183,25 @@ export default function UserVerification({ signer, account, vaultAddress, onAcce
         // If no registered credential found, fall back to auto-generation
         if (autoGenerateHash) {
           try {
+            // Use default values for auto-generation (user will need to register with proper metadata)
+            const defaultAge = 25;
+            const defaultJurisdiction = 'US';
             const result = generateCredentialHash({
               userAddress: account,
-              age: credentialAge,
-              jurisdiction: credentialJurisdiction,
+              age: defaultAge,
+              jurisdiction: defaultJurisdiction,
               accredited: false,
-              timestamp: credentialTimestamp,
+              timestamp: Date.now(),
             });
             setCredentialHash(result.credentialHash);
             setCredentialValid(null);
+            setCredentialMetadata(null); // No metadata for auto-generated hash
+            setUsingRegisteredCredential(false); // Not using registered credential
           } catch (error) {
             console.error('Error generating credential hash:', error);
           }
+        } else {
+          setUsingRegisteredCredential(false);
         }
       } catch (error) {
         console.error('Error loading registered credential:', error);
@@ -210,9 +255,9 @@ export default function UserVerification({ signer, account, vaultAddress, onAcce
     };
   }, [account, signer, vaultAddress]);
 
-  // Auto-generate credential hash when inputs change (only if auto-generate is enabled and no registered credential is loaded)
+  // Auto-generate credential hash when auto-generate is enabled (only if no registered credential is loaded)
   useEffect(() => {
-    if (!autoGenerateHash || !account || !credentialAge || !credentialJurisdiction || loadingRegisteredCredential) {
+    if (!autoGenerateHash || !account || loadingRegisteredCredential) {
       return;
     }
 
@@ -222,31 +267,37 @@ export default function UserVerification({ signer, account, vaultAddress, onAcce
     }
 
     try {
+      // Use default values for auto-generation
+      const defaultAge = 25;
+      const defaultJurisdiction = 'US';
       const result = generateCredentialHash({
         userAddress: account,
-        age: credentialAge,
-        jurisdiction: credentialJurisdiction,
+        age: defaultAge,
+        jurisdiction: defaultJurisdiction,
         accredited: false,
-        timestamp: credentialTimestamp,
+        timestamp: Date.now(),
       });
       
       setCredentialHash(result.credentialHash);
       setCredentialValid(null);
+      setCredentialMetadata(null); // No metadata for auto-generated hash
     } catch (error) {
       console.error('Error generating credential hash:', error);
     }
-  }, [account, credentialAge, credentialJurisdiction, credentialTimestamp, autoGenerateHash, loadingRegisteredCredential]);
+  }, [account, autoGenerateHash, loadingRegisteredCredential]);
 
   // Check credential validity when hash changes
   useEffect(() => {
     const checkCredential = async () => {
       if (!credentialHash || !signer) {
         setCredentialValid(null);
+        setCredentialMetadata(null);
         return;
       }
 
       if (!credentialHash.startsWith('0x') || credentialHash.length !== 66) {
         setCredentialValid(false);
+        setCredentialMetadata(null);
         return;
       }
 
@@ -254,12 +305,38 @@ export default function UserVerification({ signer, account, vaultAddress, onAcce
       try {
         const isValid = await checkCredentialValidity.mutateAsync(credentialHash);
         setCredentialValid(isValid);
+        
+        if (isValid && !credentialMetadata && account) {
+          // Try to load metadata from localStorage for this credential hash
+          try {
+            const registeredCredentials = JSON.parse(localStorage.getItem('registeredCredentials') || '{}');
+            const userCreds = registeredCredentials[account] || [];
+            const credWithMetadata = userCreds.find(
+              cred => (typeof cred === 'string' ? cred : cred.hash) === credentialHash
+            );
+            
+            if (credWithMetadata && typeof credWithMetadata === 'object') {
+              setCredentialMetadata({
+                age: credWithMetadata.age,
+                jurisdiction: credWithMetadata.jurisdiction,
+                accredited: credWithMetadata.accredited,
+                timestamp: credWithMetadata.timestamp || Date.now()
+              });
+              setUsingRegisteredCredential(true);
+            }
+          } catch (error) {
+            console.log('Could not load metadata from localStorage:', error);
+          }
+        }
+        
         if (!isValid) {
           toast.warning('⚠️ This credential is not registered or has been revoked.');
+          setCredentialMetadata(null);
         }
       } catch (error) {
         console.error('Error checking credential:', error);
         setCredentialValid(false);
+        setCredentialMetadata(null);
       } finally {
         setCheckingCredential(false);
       }
@@ -267,20 +344,26 @@ export default function UserVerification({ signer, account, vaultAddress, onAcce
 
     const timeoutId = setTimeout(checkCredential, 500);
     return () => clearTimeout(timeoutId);
-  }, [credentialHash, signer]);
+  }, [credentialHash, signer, account]);
 
-  // Check if user meets requirements
+  // Check if user meets requirements based on credential metadata
   useEffect(() => {
-    const jurisdictionCheck = credentialJurisdiction.length > 0 && 
-                              credentialJurisdiction.trim() !== '';
+    if (!credentialMetadata) {
+      setIsEligible({ age: false, jurisdiction: false });
+      return;
+    }
+
+    const jurisdictionCheck = credentialMetadata.jurisdiction && 
+                              credentialMetadata.jurisdiction.length > 0 && 
+                              credentialMetadata.jurisdiction.trim() !== '';
 
     if (!protocolRequirements) {
-      const ageCheck = credentialAge >= 18;
+      const ageCheck = credentialMetadata.age >= 18;
       setIsEligible({ age: ageCheck, jurisdiction: jurisdictionCheck });
       return;
     }
 
-    const ageCheck = credentialAge >= (protocolRequirements.minAge || 18);
+    const ageCheck = credentialMetadata.age >= (protocolRequirements.minAge || 18);
 
     setIsEligible({
       age: ageCheck,
@@ -298,7 +381,7 @@ export default function UserVerification({ signer, account, vaultAddress, onAcce
         toast.info('Vault requirements changed. Please regenerate your proof.');
       }
     }
-  }, [credentialAge, credentialJurisdiction, protocolRequirements]);
+  }, [credentialMetadata, protocolRequirements, generatedProof]);
 
   const handleGenerateProof = async () => {
     if (!vaultAddress) {
@@ -316,8 +399,8 @@ export default function UserVerification({ signer, account, vaultAddress, onAcce
       return;
     }
 
-    if (!isEligible.age || !isEligible.jurisdiction) {
-      toast.error('Please ensure you meet all requirements.');
+    if (!credentialMetadata) {
+      toast.error('Credential metadata not found. Please use a registered credential with metadata.');
       return;
     }
 
@@ -326,8 +409,13 @@ export default function UserVerification({ signer, account, vaultAddress, onAcce
       return;
     }
 
-    if (credentialAge < protocolRequirements.minAge) {
-      toast.error(`Your age (${credentialAge}) is below the minimum requirement (${protocolRequirements.minAge}).`);
+    if (credentialMetadata.age < protocolRequirements.minAge) {
+      toast.error(`Your age (${credentialMetadata.age}) is below the minimum requirement (${protocolRequirements.minAge}).`);
+      return;
+    }
+
+    if (!isEligible.age || !isEligible.jurisdiction) {
+      toast.error('Your credential does not meet the vault requirements.');
       return;
     }
 
@@ -337,8 +425,8 @@ export default function UserVerification({ signer, account, vaultAddress, onAcce
       const proofRequest = {
         credential: {
           credentialHash,
-          age: credentialAge,
-          jurisdiction: credentialJurisdiction,
+          age: credentialMetadata.age,
+          jurisdiction: credentialMetadata.jurisdiction,
           accredited: proofAccredited,
         },
         requirements: {
@@ -439,7 +527,9 @@ export default function UserVerification({ signer, account, vaultAddress, onAcce
       </Box>
 
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        Verify that you meet the vault requirements to gain access. Your credential is automatically verified in the background.
+        {usingRegisteredCredential && credentialMetadata
+          ? '✓ Using your registered credential with metadata. Just click "Verify & Generate Proof" when ready.'
+          : 'Enter your registered credential hash to verify eligibility and gain access. The credential must be registered with metadata (age, jurisdiction) by an issuer.'}
       </Typography>
 
       {protocolRequirements && (
@@ -495,29 +585,31 @@ export default function UserVerification({ signer, account, vaultAddress, onAcce
             onChange={(e) => {
               setCredentialHash(e.target.value);
               setAutoGenerateHash(false);
+              setUsingRegisteredCredential(false);
+              setCredentialMetadata(null);
             }}
             placeholder="0x..."
-            disabled={Boolean(checkingCredential || loadingRegisteredCredential || (autoGenerateHash && account))}
+            disabled={Boolean(checkingCredential || loadingRegisteredCredential || (autoGenerateHash && account) || usingRegisteredCredential)}
             error={credentialValid === false}
             helperText={
               loadingRegisteredCredential ? 'Loading registered credential...' :
               checkingCredential ? 'Checking credential...' :
-              credentialValid === true ? '✓ Credential is registered and valid (loaded automatically)' :
+              usingRegisteredCredential ? '✓ Using registered credential (read-only)' :
+              credentialValid === true ? '✓ Credential is registered and valid' :
               credentialValid === false ? '✗ Credential not registered or revoked' :
               autoGenerateHash && account ? 'Hash auto-generated. Waiting for registration...' :
               'Enter your registered credential hash or enable auto-generation'
             }
             InputProps={{
-              endAdornment: account && (
+              endAdornment: account && !usingRegisteredCredential && (
                 <FormControlLabel
                   control={
                     <Checkbox
                       checked={autoGenerateHash}
                       onChange={(e) => {
                         setAutoGenerateHash(e.target.checked);
-                        if (e.target.checked) {
-                          setCredentialTimestamp(Date.now());
-                        }
+                        setUsingRegisteredCredential(false);
+                        setCredentialMetadata(null);
                       }}
                       size="small"
                       disabled={loadingRegisteredCredential}
@@ -534,54 +626,18 @@ export default function UserVerification({ signer, account, vaultAddress, onAcce
               This credential hash needs to be registered by an issuer. Go to the <strong>Admin Operations</strong> tab to register it.
             </Alert>
           )}
+          {credentialHash && !credentialMetadata && credentialValid === true && (
+            <Alert severity="warning" sx={{ mt: 1 }}>
+              ⚠️ This credential is registered but missing metadata. Please register a new credential with metadata (age, jurisdiction) in the <strong>Admin Operations</strong> tab.
+            </Alert>
+          )}
         </Box>
-
-        <TextField
-          fullWidth
-          label="Your Age"
-          type="number"
-          value={credentialAge}
-          onChange={(e) => setCredentialAge(parseInt(e.target.value) || 18)}
-          inputProps={{ min: 18, max: 100 }}
-          error={!isEligible.age && !!protocolRequirements}
-          helperText={
-            protocolRequirements && (
-              isEligible.age 
-                ? `✓ You meet the age requirement (${protocolRequirements.minAge}+)` 
-                : `✗ You must be at least ${protocolRequirements.minAge} years old`
-            )
-          }
-        />
 
         {protocolRequirements && protocolRequirements.requireAccredited && (
           <Alert severity="warning">
             <strong>Note:</strong> This vault requires accredited investor status. The proof will be generated with accredited = 1.
           </Alert>
         )}
-
-        <FormControl fullWidth>
-          <InputLabel>Your Jurisdiction</InputLabel>
-          <Select
-            value={credentialJurisdiction}
-            onChange={(e) => setCredentialJurisdiction(e.target.value)}
-            label="Your Jurisdiction"
-            error={!isEligible.jurisdiction && !!protocolRequirements}
-          >
-            <MenuItem value="US">United States (US)</MenuItem>
-            <MenuItem value="UK">United Kingdom (UK)</MenuItem>
-            <MenuItem value="CA">Canada (CA)</MenuItem>
-            <MenuItem value="DE">Germany (DE)</MenuItem>
-            <MenuItem value="FR">France (FR)</MenuItem>
-            <MenuItem value="AU">Australia (AU)</MenuItem>
-            <MenuItem value="JP">Japan (JP)</MenuItem>
-            <MenuItem value="SG">Singapore (SG)</MenuItem>
-          </Select>
-          {protocolRequirements && (
-            <Typography variant="caption" color={isEligible.jurisdiction ? 'success.main' : 'error.main'} sx={{ mt: 0.5 }}>
-              {isEligible.jurisdiction ? '✓ Jurisdiction selected' : '✗ Please select a valid jurisdiction'}
-            </Typography>
-          )}
-        </FormControl>
 
         <Divider />
 
@@ -595,6 +651,7 @@ export default function UserVerification({ signer, account, vaultAddress, onAcce
               generateProof.isLoading ||
               !vaultAddress ||
               !credentialHash ||
+              !credentialMetadata ||
               !isEligible.age ||
               !isEligible.jurisdiction ||
               credentialValid === false ||
