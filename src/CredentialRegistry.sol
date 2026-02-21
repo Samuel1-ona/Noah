@@ -24,12 +24,16 @@ contract CredentialRegistry {
     event IssuerAdded(address indexed issuer, string name);
     event IssuerRemoved(address indexed issuer);
     
+    event NullifierRegistered(bytes32 indexed nullifier, bytes32 indexed credentialHash);
+    
     // State variables
     mapping(bytes32 => bool) public credentials; // credentialHash => exists
     mapping(bytes32 => address) public credentialIssuers; // credentialHash => issuer
     mapping(bytes32 => bool) public revokedCredentials; // credentialHash => revoked
     mapping(address => bool) public trustedIssuers; // issuer => isTrusted
     mapping(address => string) public issuerNames; // issuer => name
+    
+    mapping(bytes32 => address) public nullifierOwners; // nullifier => user address
     
     address public owner;
     
@@ -63,6 +67,32 @@ contract CredentialRegistry {
         credentialIssuers[credentialHash] = msg.sender;
         
         emit CredentialIssued(user, credentialHash, msg.sender, block.timestamp);
+    }
+
+    /**
+     * @notice Register a nullifier to prevent sybil attacks and bind identity to wallet
+     * @param nullifier The unique nullifier for the identity
+     * @param credentialHash The associated credential hash
+     * @param user The address of the user presenting the identity
+     */
+    function registerNullifier(
+        bytes32 nullifier,
+        bytes32 credentialHash,
+        address user
+    ) external {
+        // Only allow if the credential exists and is valid
+        require(credentials[credentialHash], "Credential does not exist");
+        require(!revokedCredentials[credentialHash], "Credential is revoked");
+        
+        if (nullifierOwners[nullifier] == address(0)) {
+            // First time this identity is used: bind it to the wallet
+            nullifierOwners[nullifier] = user;
+        } else {
+            // Reusable KYC check: must be the same owner
+            require(nullifierOwners[nullifier] == user, "Identity bound to another wallet");
+        }
+        
+        emit NullifierRegistered(nullifier, credentialHash);
     }
     
     /**
@@ -115,16 +145,6 @@ contract CredentialRegistry {
         trustedIssuers[issuer] = false;
         
         emit IssuerRemoved(issuer);
-    }
-    
-    /**
-     * @notice Get issuer information
-     * @param issuer The address of the issuer
-     * @return isTrusted Whether the issuer is trusted
-     * @return name The name of the issuer
-     */
-    function getIssuerInfo(address issuer) external view returns (bool isTrusted, string memory name) {
-        return (trustedIssuers[issuer], issuerNames[issuer]);
     }
 }
 

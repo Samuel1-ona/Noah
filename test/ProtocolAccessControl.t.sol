@@ -18,7 +18,7 @@ contract MockZKVerifier is IZKVerifier {
         uint[2] memory,
         uint[2][2] memory,
         uint[2] memory,
-        uint[14] memory
+        uint[28] memory
     ) external view override returns (bool) {
         return shouldVerify;
     }
@@ -42,6 +42,8 @@ contract ProtocolAccessControlTest is Test {
             address(registry)
         );
         
+        vm.warp(1 days); // Set block.timestamp to 86400 to avoid underflow in (timestamp - 1 hour)
+        
         protocol = address(0x1);
         user = address(0x2);
         issuer = address(0x3);
@@ -61,15 +63,11 @@ contract ProtocolAccessControlTest is Test {
         vm.prank(protocol);
         accessControl.setRequirements(18, jurisdictions, true);
         
-        (
-            uint256 minAge,
-            uint256[] memory allowedJurisdictions,
-            bool requireAccredited
-        ) = accessControl.getRequirements(protocol);
+        (uint256 minAge, bool requireAccredited, bool isSet) = accessControl.protocolRequirements(protocol);
         
         assertEq(minAge, 18);
-        assertEq(allowedJurisdictions.length, 2);
         assertTrue(requireAccredited);
+        assertTrue(isSet);
     }
     
     function test_VerifyAndGrantAccess() public {
@@ -84,10 +82,14 @@ contract ProtocolAccessControlTest is Test {
         uint[2] memory a = [uint(1), uint(2)];
         uint[2][2] memory b = [[uint(3), uint(4)], [uint(5), uint(6)]];
         uint[2] memory c = [uint(7), uint(8)];
-        uint[13] memory publicSignals;
+        uint[28] memory publicSignals;
         publicSignals[0] = 18; // minAge
-        publicSignals[11] = 0; // requireAccredited = false
-        publicSignals[12] = uint256(credentialHash); // credentialHash
+        publicSignals[1] = 1234567890; // jurisdiction
+        publicSignals[12] = uint256(credentialHash) & 0xFFFFFFFFFFFFFFF; // credentialHash (truncated)
+        publicSignals[13] = uint256(uint160(user)); // RecipientAddress (user wallet)
+        publicSignals[14] = block.timestamp; // CurrentDate
+        publicSignals[25] = 1; // isValid
+        publicSignals[27] = 15; // PackedFlags (all OK)
         
         // Verify and grant access
         vm.prank(protocol);
@@ -100,7 +102,7 @@ contract ProtocolAccessControlTest is Test {
         uint[2] memory a = [uint(1), uint(2)];
         uint[2][2] memory b = [[uint(3), uint(4)], [uint(5), uint(6)]];
         uint[2] memory c = [uint(7), uint(8)];
-        uint[13] memory publicSignals;
+        uint[28] memory publicSignals;
         
         vm.prank(protocol);
         vm.expectRevert("Requirements not set");
@@ -118,8 +120,12 @@ contract ProtocolAccessControlTest is Test {
         uint[2] memory a = [uint(1), uint(2)];
         uint[2][2] memory b = [[uint(3), uint(4)], [uint(5), uint(6)]];
         uint[2] memory c = [uint(7), uint(8)];
-        uint[13] memory publicSignals;
+        uint[28] memory publicSignals;
         publicSignals[0] = 18;
+        publicSignals[1] = 1234567890;
+        publicSignals[14] = block.timestamp;
+        publicSignals[25] = 1;
+        publicSignals[27] = 15;
         
         vm.prank(protocol);
         vm.expectRevert("Invalid or revoked credential");
@@ -137,10 +143,14 @@ contract ProtocolAccessControlTest is Test {
         uint[2] memory a = [uint(1), uint(2)];
         uint[2][2] memory b = [[uint(3), uint(4)], [uint(5), uint(6)]];
         uint[2] memory c = [uint(7), uint(8)];
-        uint[13] memory publicSignals;
+        uint[28] memory publicSignals;
         publicSignals[0] = 18;
-        publicSignals[11] = 0;
-        publicSignals[12] = uint256(credentialHash);
+        publicSignals[1] = 1234567890;
+        publicSignals[12] = uint256(credentialHash) & 0xFFFFFFFFFFFFFFF;
+        publicSignals[13] = uint256(uint160(user));
+        publicSignals[14] = block.timestamp;
+        publicSignals[25] = 1;
+        publicSignals[27] = 15;
         
         vm.prank(protocol);
         accessControl.verifyAndGrantAccess(a, b, c, publicSignals, credentialHash, user);
@@ -174,7 +184,7 @@ contract ProtocolAccessControlTest is Test {
         vm.prank(protocol);
         accessControl.setRequirements(18, jurisdictions, false);
         
-        (,, bool requireAccredited) = accessControl.getRequirements(protocol);
+        (, bool requireAccredited, bool isSet) = accessControl.protocolRequirements(protocol);
         assertFalse(requireAccredited);
     }
     
@@ -184,11 +194,11 @@ contract ProtocolAccessControlTest is Test {
         vm.prank(protocol);
         accessControl.setRequirements(21, jurisdictions, true);
         
-        (uint256 minAge, uint256[] memory allowedJurisdictions, bool requireAccredited) = 
-            accessControl.getRequirements(protocol);
+        (uint256 minAge, bool requireAccredited, bool isSet) = 
+            accessControl.protocolRequirements(protocol);
         assertEq(minAge, 21);
-        assertEq(allowedJurisdictions.length, 0);
         assertTrue(requireAccredited);
+        assertTrue(isSet);
     }
     
     function test_SetRequirements_UpdateRequirements() public {
@@ -205,11 +215,11 @@ contract ProtocolAccessControlTest is Test {
         vm.prank(protocol);
         accessControl.setRequirements(21, jurisdictions2, true);
         
-        (uint256 minAge, uint256[] memory allowedJurisdictions, bool requireAccredited) = 
-            accessControl.getRequirements(protocol);
+        (uint256 minAge, bool requireAccredited, bool isSet) = 
+            accessControl.protocolRequirements(protocol);
         assertEq(minAge, 21);
-        assertEq(allowedJurisdictions.length, 2);
         assertTrue(requireAccredited);
+        assertTrue(isSet);
     }
     
     function test_VerifyAndGrantAccess_RevokedCredential() public {
@@ -226,10 +236,13 @@ contract ProtocolAccessControlTest is Test {
         uint[2] memory a = [uint(1), uint(2)];
         uint[2][2] memory b = [[uint(3), uint(4)], [uint(5), uint(6)]];
         uint[2] memory c = [uint(7), uint(8)];
-        uint[13] memory publicSignals;
+        uint[28] memory publicSignals;
         publicSignals[0] = 18;
-        publicSignals[11] = 0;
-        publicSignals[12] = uint256(credentialHash);
+        publicSignals[12] = uint256(credentialHash) & 0xFFFFFFFFFFFFFFF;
+        publicSignals[13] = uint256(uint160(user));
+        publicSignals[14] = block.timestamp;
+        publicSignals[25] = 1;
+        publicSignals[27] = 15;
         
         vm.prank(protocol);
         vm.expectRevert("Invalid or revoked credential");
@@ -248,10 +261,13 @@ contract ProtocolAccessControlTest is Test {
         uint[2] memory a = [uint(1), uint(2)];
         uint[2][2] memory b = [[uint(3), uint(4)], [uint(5), uint(6)]];
         uint[2] memory c = [uint(7), uint(8)];
-        uint[13] memory publicSignals;
+        uint[28] memory publicSignals;
         publicSignals[0] = 18;
-        publicSignals[11] = 0;
-        publicSignals[12] = uint256(credentialHash);
+        publicSignals[12] = uint256(credentialHash) & 0xFFFFFFFFFFFFFFF;
+        publicSignals[13] = uint256(uint160(user));
+        publicSignals[14] = block.timestamp;
+        publicSignals[25] = 1;
+        publicSignals[27] = 15;
         
         vm.prank(protocol);
         vm.expectRevert("Invalid proof");
@@ -268,10 +284,14 @@ contract ProtocolAccessControlTest is Test {
         uint[2] memory a = [uint(1), uint(2)];
         uint[2][2] memory b = [[uint(3), uint(4)], [uint(5), uint(6)]];
         uint[2] memory c = [uint(7), uint(8)];
-        uint[13] memory publicSignals;
+        uint[28] memory publicSignals;
         publicSignals[0] = 18; // Mismatch: protocol requires 21
-        publicSignals[11] = 0;
-        publicSignals[12] = uint256(credentialHash);
+        publicSignals[1] = 1234567890;
+        publicSignals[12] = uint256(credentialHash) & 0xFFFFFFFFFFFFFFF;
+        publicSignals[13] = uint256(uint160(user));
+        publicSignals[14] = block.timestamp;
+        publicSignals[25] = 1;
+        publicSignals[27] = 15;
         
         vm.prank(protocol);
         vm.expectRevert("Age requirement mismatch");
@@ -288,10 +308,15 @@ contract ProtocolAccessControlTest is Test {
         uint[2] memory a = [uint(1), uint(2)];
         uint[2][2] memory b = [[uint(3), uint(4)], [uint(5), uint(6)]];
         uint[2] memory c = [uint(7), uint(8)];
-        uint[13] memory publicSignals;
+        uint[28] memory publicSignals;
         publicSignals[0] = 18;
+        publicSignals[1] = 1234567890;
         publicSignals[11] = 0; // Mismatch: protocol requires 1 (accredited)
-        publicSignals[12] = uint256(credentialHash);
+        publicSignals[12] = uint256(credentialHash) & 0xFFFFFFFFFFFFFFF;
+        publicSignals[13] = uint256(uint160(user));
+        publicSignals[14] = block.timestamp;
+        publicSignals[25] = 1;
+        publicSignals[27] = 15;
         
         vm.prank(protocol);
         vm.expectRevert("Accreditation requirement mismatch");
@@ -313,10 +338,14 @@ contract ProtocolAccessControlTest is Test {
         uint[2] memory a = [uint(1), uint(2)];
         uint[2][2] memory b = [[uint(3), uint(4)], [uint(5), uint(6)]];
         uint[2] memory c = [uint(7), uint(8)];
-        uint[13] memory publicSignals;
+        uint[28] memory publicSignals;
         publicSignals[0] = 18;
-        publicSignals[11] = 0;
-        publicSignals[12] = uint256(credentialHash); // Public signal has different hash than parameter
+        publicSignals[1] = 1234567890;
+        publicSignals[12] = uint256(credentialHash) & 0xFFFFFFFFFFFFFFF; // Public signal has different hash than parameter
+        publicSignals[13] = uint256(uint160(user));
+        publicSignals[14] = block.timestamp;
+        publicSignals[25] = 1;
+        publicSignals[27] = 15;
         
         // Use wrongHash as parameter but public signal has credentialHash
         // This should fail at credential hash mismatch check
@@ -335,10 +364,14 @@ contract ProtocolAccessControlTest is Test {
         uint[2] memory a = [uint(1), uint(2)];
         uint[2][2] memory b = [[uint(3), uint(4)], [uint(5), uint(6)]];
         uint[2] memory c = [uint(7), uint(8)];
-        uint[13] memory publicSignals;
+        uint[28] memory publicSignals;
         publicSignals[0] = 18;
-        publicSignals[11] = 0;
-        publicSignals[12] = uint256(credentialHash);
+        publicSignals[1] = 1234567890;
+        publicSignals[12] = uint256(credentialHash) & 0xFFFFFFFFFFFFFFF;
+        publicSignals[13] = uint256(uint160(address(0))); // Bound to zero address for this test
+        publicSignals[14] = block.timestamp;
+        publicSignals[25] = 1;
+        publicSignals[27] = 15;
         
         vm.prank(protocol);
         // Should allow zero address user (edge case)
@@ -362,10 +395,14 @@ contract ProtocolAccessControlTest is Test {
         uint[2] memory a = [uint(1), uint(2)];
         uint[2][2] memory b = [[uint(3), uint(4)], [uint(5), uint(6)]];
         uint[2] memory c = [uint(7), uint(8)];
-        uint[13] memory publicSignals;
+        uint[28] memory publicSignals;
         publicSignals[0] = 18;
-        publicSignals[11] = 0;
-        publicSignals[12] = uint256(credentialHash);
+        publicSignals[1] = 1234567890;
+        publicSignals[12] = uint256(credentialHash) & 0xFFFFFFFFFFFFFFF;
+        publicSignals[13] = uint256(uint160(user));
+        publicSignals[14] = block.timestamp;
+        publicSignals[25] = 1;
+        publicSignals[27] = 15;
         
         vm.prank(protocol);
         accessControl.verifyAndGrantAccess(a, b, c, publicSignals, credentialHash, user);
@@ -390,16 +427,23 @@ contract ProtocolAccessControlTest is Test {
         uint[2] memory a = [uint(1), uint(2)];
         uint[2][2] memory b = [[uint(3), uint(4)], [uint(5), uint(6)]];
         uint[2] memory c = [uint(7), uint(8)];
-        uint[13] memory publicSignals;
+        uint[28] memory publicSignals;
         publicSignals[0] = 18;
-        publicSignals[11] = 0;
-        publicSignals[12] = uint256(credentialHash);
+        publicSignals[1] = 1234567890;
+        publicSignals[12] = uint256(credentialHash) & 0xFFFFFFFFFFFFFFF;
+        publicSignals[13] = uint256(uint160(user));
+        publicSignals[14] = block.timestamp;
+        publicSignals[25] = 1;
+        publicSignals[27] = 15;
         
         vm.prank(protocol);
         accessControl.verifyAndGrantAccess(a, b, c, publicSignals, credentialHash, user);
         
         vm.prank(protocol);
         accessControl.revokeAccess(user);
+        
+        // Use a different nullifier for the second call to avoid "Nullifier already used"
+        publicSignals[26] = uint256(keccak256("new-nullifier"));
         
         // Can regrant access
         vm.prank(protocol);
@@ -416,12 +460,12 @@ contract ProtocolAccessControlTest is Test {
     function test_GetRequirements_NonExistent() public {
         address nonExistentProtocol = address(0xD);
         
-        (uint256 minAge, uint256[] memory allowedJurisdictions, bool requireAccredited) = 
-            accessControl.getRequirements(nonExistentProtocol);
+        (uint256 minAge, bool requireAccredited, bool isSet) = 
+            accessControl.protocolRequirements(nonExistentProtocol);
         
         assertEq(minAge, 0);
-        assertEq(allowedJurisdictions.length, 0);
         assertFalse(requireAccredited);
+        assertFalse(isSet);
     }
     
     function test_VerifyAndGrantAccess_PublicSignalsBoundary() public {
@@ -436,14 +480,17 @@ contract ProtocolAccessControlTest is Test {
         uint[2] memory a = [uint(1), uint(2)];
         uint[2][2] memory b = [[uint(3), uint(4)], [uint(5), uint(6)]];
         uint[2] memory c = [uint(7), uint(8)];
-        uint[13] memory publicSignals;
+        uint[28] memory publicSignals;
         publicSignals[0] = 18;
         // Fill all 10 jurisdiction slots
         for (uint i = 0; i < 10; i++) {
             publicSignals[i + 1] = i + 1000;
         }
-        publicSignals[11] = 0;
-        publicSignals[12] = uint256(credentialHash);
+        publicSignals[12] = uint256(credentialHash) & 0xFFFFFFFFFFFFFFF;
+        publicSignals[13] = uint256(uint160(user));
+        publicSignals[14] = block.timestamp;
+        publicSignals[25] = 1;
+        publicSignals[27] = 15;
         
         vm.prank(protocol);
         accessControl.verifyAndGrantAccess(a, b, c, publicSignals, credentialHash, user);
@@ -461,10 +508,14 @@ contract ProtocolAccessControlTest is Test {
         uint[2] memory a = [uint(1), uint(2)];
         uint[2][2] memory b = [[uint(3), uint(4)], [uint(5), uint(6)]];
         uint[2] memory c = [uint(7), uint(8)];
-        uint[13] memory publicSignals;
+        uint[28] memory publicSignals;
         publicSignals[0] = 18;
-        publicSignals[11] = 0;
-        publicSignals[12] = uint256(credentialHash);
+        publicSignals[1] = 1234567890;
+        publicSignals[12] = uint256(credentialHash) & 0xFFFFFFFFFFFFFFF;
+        publicSignals[13] = uint256(uint160(user));
+        publicSignals[14] = block.timestamp;
+        publicSignals[25] = 1;
+        publicSignals[27] = 15;
         
         vm.prank(protocol);
         accessControl.verifyAndGrantAccess(a, b, c, publicSignals, credentialHash, user);
@@ -482,16 +533,68 @@ contract ProtocolAccessControlTest is Test {
         uint[2] memory a = [uint(1), uint(2)];
         uint[2][2] memory b = [[uint(3), uint(4)], [uint(5), uint(6)]];
         uint[2] memory c = [uint(7), uint(8)];
-        uint[13] memory publicSignals;
+        uint[28] memory publicSignals;
         publicSignals[0] = type(uint256).max;
         publicSignals[1] = type(uint256).max;
         publicSignals[11] = 1;
-        publicSignals[12] = uint256(credentialHash);
+        publicSignals[12] = uint256(credentialHash) & 0xFFFFFFFFFFFFFFF;
+        publicSignals[13] = uint256(uint160(user));
+        publicSignals[14] = block.timestamp;
+        publicSignals[25] = 1;
+        publicSignals[27] = 15;
         
         vm.prank(protocol);
         accessControl.verifyAndGrantAccess(a, b, c, publicSignals, credentialHash, user);
         
         assertTrue(accessControl.hasAccess(protocol, user));
+    }
+
+    function test_VerifyAndGrantAccess_ProofTooOld() public {
+        uint256[] memory jurisdictions = new uint256[](1);
+        jurisdictions[0] = 1234567890;
+        
+        vm.prank(protocol);
+        accessControl.setRequirements(18, jurisdictions, false);
+        
+        uint[2] memory a = [uint(1), uint(2)];
+        uint[2][2] memory b = [[uint(3), uint(4)], [uint(5), uint(6)]];
+        uint[2] memory c = [uint(7), uint(8)];
+        uint[28] memory publicSignals;
+        publicSignals[0] = 18;
+        publicSignals[1] = 1234567890;
+        publicSignals[12] = uint256(credentialHash) & 0xFFFFFFFFFFFFFFF;
+        publicSignals[13] = uint256(uint160(user));
+        publicSignals[14] = block.timestamp - 61 minutes; // 61 mins ago (> 1 hour)
+        publicSignals[25] = 1;
+        publicSignals[27] = 15;
+        
+        vm.prank(protocol);
+        vm.expectRevert("Proof too old");
+        accessControl.verifyAndGrantAccess(a, b, c, publicSignals, credentialHash, user);
+    }
+
+    function test_VerifyAndGrantAccess_ProofDateInFuture() public {
+        uint256[] memory jurisdictions = new uint256[](1);
+        jurisdictions[0] = 1234567890;
+        
+        vm.prank(protocol);
+        accessControl.setRequirements(18, jurisdictions, false);
+        
+        uint[2] memory a = [uint(1), uint(2)];
+        uint[2][2] memory b = [[uint(3), uint(4)], [uint(5), uint(6)]];
+        uint[2] memory c = [uint(7), uint(8)];
+        uint[28] memory publicSignals;
+        publicSignals[0] = 18;
+        publicSignals[1] = 1234567890;
+        publicSignals[12] = uint256(credentialHash) & 0xFFFFFFFFFFFFFFF;
+        publicSignals[13] = uint256(uint160(user));
+        publicSignals[14] = block.timestamp + 1 seconds; // In the future
+        publicSignals[25] = 1;
+        publicSignals[27] = 15;
+        
+        vm.prank(protocol);
+        vm.expectRevert("Proof date in future");
+        accessControl.verifyAndGrantAccess(a, b, c, publicSignals, credentialHash, user);
     }
 }
 

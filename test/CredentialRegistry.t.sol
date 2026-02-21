@@ -28,7 +28,8 @@ contract CredentialRegistryTest is Test {
         address newIssuer = address(0x3);
         registry.addIssuer(newIssuer, "New Provider");
         
-        (bool isTrusted, string memory name) = registry.getIssuerInfo(newIssuer);
+        bool isTrusted = registry.trustedIssuers(newIssuer);
+        string memory name = registry.issuerNames(newIssuer);
         assertTrue(isTrusted);
         assertEq(name, "New Provider");
     }
@@ -72,7 +73,7 @@ contract CredentialRegistryTest is Test {
     function test_RemoveIssuer() public {
         registry.removeIssuer(issuer);
         
-        (bool isTrusted, ) = registry.getIssuerInfo(issuer);
+        bool isTrusted = registry.trustedIssuers(issuer);
         assertFalse(isTrusted);
     }
     
@@ -168,7 +169,8 @@ contract CredentialRegistryTest is Test {
         // In production, you may want to add a zero address check
         registry.addIssuer(address(0), "Zero Address");
         
-        (bool isTrusted, string memory name) = registry.getIssuerInfo(address(0));
+        bool isTrusted = registry.trustedIssuers(address(0));
+        string memory name = registry.issuerNames(address(0));
         assertTrue(isTrusted);
         assertEq(name, "Zero Address");
     }
@@ -186,7 +188,8 @@ contract CredentialRegistryTest is Test {
         // Can re-add after removal
         registry.addIssuer(issuer, "Re-added Issuer");
         
-        (bool isTrusted, string memory name) = registry.getIssuerInfo(issuer);
+        bool isTrusted = registry.trustedIssuers(issuer);
+        string memory name = registry.issuerNames(issuer);
         assertTrue(isTrusted);
         assertEq(name, "Re-added Issuer");
     }
@@ -219,7 +222,8 @@ contract CredentialRegistryTest is Test {
     function test_GetIssuerInfo_NonExistent() public {
         address nonExistent = address(0x6);
         
-        (bool isTrusted, string memory name) = registry.getIssuerInfo(nonExistent);
+        bool isTrusted = registry.trustedIssuers(nonExistent);
+        string memory name = registry.issuerNames(nonExistent);
         assertFalse(isTrusted);
         assertEq(name, "");
     }
@@ -228,7 +232,8 @@ contract CredentialRegistryTest is Test {
         address newIssuer = address(0x7);
         registry.addIssuer(newIssuer, "");
         
-        (bool isTrusted, string memory name) = registry.getIssuerInfo(newIssuer);
+        bool isTrusted = registry.trustedIssuers(newIssuer);
+        string memory name = registry.issuerNames(newIssuer);
         assertTrue(isTrusted);
         assertEq(name, "");
     }

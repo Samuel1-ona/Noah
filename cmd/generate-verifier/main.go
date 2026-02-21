@@ -37,44 +37,44 @@ func main() {
 	}
 
 	// Save proving key to file
-	pkPath := filepath.Join("..", "..", "build", "proving_key.pk")
+	pkPath := filepath.Join("build", "proving_key.pk")
 	err = os.MkdirAll(filepath.Dir(pkPath), 0755)
 	if err != nil {
 		panic(fmt.Sprintf("Failed to create build directory: %v", err))
 	}
-	
+
 	pkFile, err := os.Create(pkPath)
 	if err != nil {
 		panic(fmt.Sprintf("Failed to create proving key file: %v", err))
 	}
 	defer pkFile.Close()
-	
+
 	_, err = pk.WriteTo(pkFile)
 	if err != nil {
 		panic(fmt.Sprintf("Failed to write proving key: %v", err))
 	}
 
 	// Save constraint system (needed for proof generation)
-	ccsPath := filepath.Join("..", "..", "build", "circuit.ccs")
+	ccsPath := filepath.Join("build", "circuit.ccs")
 	ccsFile, err := os.Create(ccsPath)
 	if err != nil {
 		panic(fmt.Sprintf("Failed to create constraint system file: %v", err))
 	}
 	defer ccsFile.Close()
-	
+
 	_, err = ccs.WriteTo(ccsFile)
 	if err != nil {
 		panic(fmt.Sprintf("Failed to write constraint system: %v", err))
 	}
 
 	// Save verification key (needed for proof verification)
-	vkPath := filepath.Join("..", "..", "build", "verification_key.vk")
+	vkPath := filepath.Join("build", "verification_key.vk")
 	vkFile, err := os.Create(vkPath)
 	if err != nil {
 		panic(fmt.Sprintf("Failed to create verification key file: %v", err))
 	}
 	defer vkFile.Close()
-	
+
 	_, err = vk.WriteTo(vkFile)
 	if err != nil {
 		panic(fmt.Sprintf("Failed to write verification key: %v", err))
@@ -90,7 +90,7 @@ func main() {
 	wrappedVerifier := wrapVerifier(verifierCode, ccs)
 
 	// Save verifier contract
-	outputPath := filepath.Join("..", "..", "src", "ZKVerifier.sol")
+	outputPath := filepath.Join("src", "ZKVerifier.sol")
 	err = os.WriteFile(outputPath, []byte(wrappedVerifier), 0644)
 	if err != nil {
 		panic(fmt.Sprintf("Failed to write verifier: %v", err))
@@ -122,18 +122,18 @@ func generateVerifierSolidity(vk groth16.VerifyingKey) (string, error) {
 func wrapVerifier(verifierCode string, ccs constraint.ConstraintSystem) string {
 	// The gnark-generated verifier contract is named "Verifier"
 	// We need to rename it to "ZKVerifier" and make it implement IZKVerifier
-	
+
 	modifiedCode := verifierCode
-	
+
 	// Add import statement
 	importStmt := `import "./IZKVerifier.sol";
 
 `
-	
+
 	// Replace "contract Verifier" with "contract ZKVerifier is IZKVerifier"
 	contractStart := "contract Verifier"
 	contractReplacement := "contract ZKVerifier is IZKVerifier"
-	
+
 	// Replace the contract declaration
 	if idx := findContractStart(modifiedCode); idx >= 0 {
 		// Insert import before the contract
@@ -145,14 +145,14 @@ func wrapVerifier(verifierCode string, ccs constraint.ConstraintSystem) string {
 		modifiedCode = importStmt + modifiedCode
 		modifiedCode = replaceFirst(modifiedCode, contractStart, contractReplacement)
 	}
-	
+
 	// Rename the gnark-generated verifyProof function to verifyProofGnark
 	// This avoids conflict with our wrapper function that implements IZKVerifier
 	// Use simple string replacement - gnark always generates the same signature
-	modifiedCode = string(bytes.ReplaceAll([]byte(modifiedCode), 
-		[]byte("function verifyProof(\n        uint256[8] calldata proof,\n        uint256[14] calldata input\n    ) public view {"),
-		[]byte("function verifyProofGnark(\n        uint256[8] calldata proof,\n        uint256[14] calldata input\n    ) public view {")))
-	
+	modifiedCode = string(bytes.ReplaceAll([]byte(modifiedCode),
+		[]byte("function verifyProof(\n        uint256[8] calldata proof,\n        uint256[28] calldata input\n    ) public view {"),
+		[]byte("function verifyProofGnark(\n        uint256[8] calldata proof,\n        uint256[28] calldata input\n    ) public view {")))
+
 	// Add the verifyProof function that implements IZKVerifier
 	// Note: The interface expects uint[14] for publicSignals (14 public inputs)
 	verifyProofFunc := `
@@ -162,15 +162,18 @@ func wrapVerifier(verifierCode string, ccs constraint.ConstraintSystem) string {
      * @param a The A component of the ZK proof (G1 point)
      * @param b The B component of the ZK proof (G2 point)  
      * @param c The C component of the ZK proof (G1 point)
-     * @param publicSignals The public signals array (14 elements)
-     * @dev Public signals: [0]=minAge, [1-10]=allowedJurisdictions, [11]=requireAccredited, [12]=credentialHashPublic, [13]=isValid
+     * @param publicSignals The public signals array (28 elements)
+     * @dev Public signals order: 
+     *      [0]=minAge, [1-10]=allowedJurisdictions, [11]=requireAccredited, 
+     *      [12]=credentialHashPublic, [13]=appID, [14]=currentDate, [15-24]=sanctionedCountries,
+     *      [25]=isValid, [26]=nullifier, [27]=packedFlags
      * @return isValid True if the proof is valid
      */
     function verifyProof(
         uint[2] memory a,
         uint[2][2] memory b,
         uint[2] memory c,
-        uint[14] memory publicSignals
+        uint[28] memory publicSignals
     ) external view override returns (bool) {
         // Convert proof format: [a[2], b[2][2], c[2]] to flat array
         // gnark's verify expects: [a_x, a_y, b_x0, b_x1, b_y0, b_y1, c_x, c_y]
@@ -192,7 +195,7 @@ func wrapVerifier(verifierCode string, ccs constraint.ConstraintSystem) string {
         }
     }
 `
-	
+
 	// Insert before the last closing brace (the one that closes the contract)
 	lastBrace := findLastBrace(modifiedCode)
 	if lastBrace > 0 {
@@ -207,7 +210,7 @@ func wrapVerifier(verifierCode string, ccs constraint.ConstraintSystem) string {
 			modifiedCode = modifiedCode + verifyProofFunc
 		}
 	}
-	
+
 	return modifiedCode
 }
 
@@ -249,7 +252,7 @@ func findLastBrace(s string) int {
 	lastBrace := -1
 	inString := false
 	inComment := false
-	
+
 	for i := 0; i < len(s); i++ {
 		if i < len(s)-1 && s[i:i+2] == "//" {
 			inComment = true
@@ -278,7 +281,7 @@ func replaceFunctionName(s, oldName, newName string) string {
 	// Look for "function verifyProof(" pattern
 	oldPattern := oldName
 	newPattern := newName
-	
+
 	// Simple replacement - this should work because gnark generates "function verifyProof("
 	// and we want to rename it to "function verifyProofGnark("
 	result := s
@@ -321,17 +324,24 @@ func testCircuit(ccs constraint.ConstraintSystem, pk groth16.ProvingKey, vk grot
 		ActualJurisdiction: 1234567890,
 		ActualAccredited:   1,
 		CredentialHash:     9876543210,
-		
+		PassportNumber:     1357924680,
+		ExpiryDate:         1893456000, // 2030-01-01
+
 		// Public inputs
 		MinAge: 18,
 		AllowedJurisdictions: [10]frontend.Variable{
 			1234567890, 1111111111, 2222222222, 0, 0, 0, 0, 0, 0, 0,
 		},
-		RequireAccredited:   1,
+		RequireAccredited:    1,
 		CredentialHashPublic: 9876543210,
-		
-		// Output field - set to expected value (1 for valid, will be verified by circuit)
-		IsValid: 1,
+		AppID:                55555,
+		CurrentDate:          1740052800, // 2025-02-20
+		SanctionedCountries:  [10]frontend.Variable{0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+
+		// Output fields
+		IsValid:     1,
+		Nullifier:   1357924680 + 55555,
+		PackedFlags: 15, // 1 + 2 + 4 + 8 = 15
 	}
 
 	// Generate witness
@@ -355,4 +365,3 @@ func testCircuit(ccs constraint.ConstraintSystem, pk groth16.ProvingKey, vk grot
 		panic(fmt.Sprintf("Proof verification failed: %v", err))
 	}
 }
-

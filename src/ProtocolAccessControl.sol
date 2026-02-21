@@ -93,7 +93,7 @@ contract ProtocolAccessControl {
         uint[2] memory a,
         uint[2][2] memory b,
         uint[2] memory c,
-        uint[13] memory publicSignals,
+        uint[28] memory publicSignals,
         bytes32 credentialHash,
         address user
     ) external {
@@ -107,52 +107,55 @@ contract ProtocolAccessControl {
             "Invalid or revoked credential"
         );
         
-        // Reconstruct full 14-element public inputs array for verifier
-        // Circuit expects: [0]=minAge, [1-10]=allowedJurisdictions, [11]=requireAccredited, [12]=credentialHashPublic, [13]=isValid
-        uint[14] memory fullPublicInputs;
-        
-        // minAge
-        fullPublicInputs[0] = publicSignals[0];
-        
-        // allowedJurisdictions (10 elements)
-        // publicSignals[1-10] maps to fullPublicInputs[1-10]
-        for (uint i = 0; i < 10 && i < publicSignals.length - 3; i++) {
-            fullPublicInputs[i + 1] = publicSignals[i + 1];
-        }
-        // Pad remaining jurisdictions with 0 if needed
-        for (uint i = publicSignals.length - 3; i < 10; i++) {
-            fullPublicInputs[i + 1] = 0;
-        }
-        
-        // requireAccredited
-        fullPublicInputs[11] = publicSignals[11];
-        
-        // credentialHashPublic
-        fullPublicInputs[12] = publicSignals[12];
-        
-        // isValid (expected to be 1 for valid proof)
-        fullPublicInputs[13] = 1;
-        
-        // Verify ZK proof with full 14-element array
-        bool proofValid = zkVerifier.verifyProof(a, b, c, fullPublicInputs);
+        // Verify ZK proof
+        bool proofValid = zkVerifier.verifyProof(a, b, c, publicSignals);
         require(proofValid, "Invalid proof");
+        require(publicSignals[25] == 1, "Circuit isValid output must be 1");
         
-        // Verify public signals match protocol requirements
+        // 1. Verify MinAge requirement matches
         require(publicSignals[0] == req.minAge, "Age requirement mismatch");
-        require(publicSignals[11] == (req.requireAccredited ? 1 : 0), "Accreditation requirement mismatch");
         
-        // Verify credential hash matches
-        // Note: The circuit uses a truncated hash (last 15 hex chars = 60 bits) for proof generation
-        // because Go's int64 can only hold values up to 2^63 - 1. We extract the same truncated portion
-        // from the full hash for comparison.
-        uint256 fullHash = uint256(credentialHash);
-        // Extract last 15 hex chars (60 bits) by masking with (2^60 - 1)
-        // This matches what the proof generation uses (last 15 hex characters where the actual value is)
-        uint256 truncatedHash = fullHash & 0xFFFFFFFFFFFFFFF; // Mask to get last 60 bits (15 hex chars)
+        // 2. Verify Jurisdictions match
+        for (uint i = 0; i < 10; i++) {
+            uint256 proofJurisdiction = publicSignals[i + 1];
+            if (i < req.allowedJurisdictions.length) {
+                require(proofJurisdiction == req.allowedJurisdictions[i], "Jurisdiction requirement mismatch");
+            } else {
+                require(proofJurisdiction == 0, "Jurisdiction requirement mismatch");
+            }
+        }
+
+        // 3. Verify Accreditation requirement matches
+        uint256 reqAccredited = req.requireAccredited ? 1 : 0;
+        require(publicSignals[11] == reqAccredited, "Accreditation requirement mismatch");
+
+        // 4. Verify Proof is bound to the User Wallet (recipientAddress)
+        // This prevents replaying proofs presented by other users
+        require(publicSignals[13] == uint256(uint160(user)), "Proof not bound to this user");
+
+        // 5. Verify Credential Hash matches (truncated 60-bit hash)
+        uint256 truncatedHash = uint256(credentialHash) & 0xFFFFFFFFFFFFFFF;
         require(publicSignals[12] == truncatedHash, "Credential hash mismatch");
+
+        // 6. Verify Packed Flags (isOver18, isOver21, validExpiry, isNotSanctioned)
+        uint256 packedFlags = publicSignals[27];
+        // bit 0: isOver18, bit 1: isOver21, bit 2: validExpiry, bit 3: isNotSanctioned
+        require((packedFlags & 0x4) != 0, "Passport expired");
+        require((packedFlags & 0x8) != 0, "Nationality sanctioned");
         
-        // Check jurisdiction (simplified - in production, verify all allowed jurisdictions match)
-        // For now, we verify the proof is valid which means jurisdiction is in allowed list
+        if (req.minAge >= 21) {
+            require((packedFlags & 0x2) != 0, "Not over 21");
+        } else if (req.minAge >= 18) {
+            require((packedFlags & 0x1) != 0, "Not over 18");
+        }
+
+        // 7. Verify CurrentDate is recent (within 1 hour)
+        require(publicSignals[14] <= block.timestamp, "Proof date in future");
+        require(publicSignals[14] >= block.timestamp - 1 hours, "Proof too old");
+
+        // Register Nullifier to prevent Sybil attacks and document reuse by others
+        bytes32 nullifier = bytes32(publicSignals[26]);
+        credentialRegistry.registerNullifier(nullifier, credentialHash, user);
         
         // Grant access
         hasAccess[msg.sender][user] = true;
@@ -179,21 +182,6 @@ contract ProtocolAccessControl {
         hasAccess[msg.sender][user] = false;
         
         emit AccessRevoked(user, msg.sender, block.timestamp);
-    }
-    
-    /**
-     * @notice Get protocol requirements
-     * @return minAge Minimum age required
-     * @return allowedJurisdictions Array of allowed jurisdiction hashes
-     * @return requireAccredited Whether accredited investor status is required
-     */
-    function getRequirements(address protocol) external view returns (
-        uint256 minAge,
-        uint256[] memory allowedJurisdictions,
-        bool requireAccredited
-    ) {
-        Requirements memory req = protocolRequirements[protocol];
-        return (req.minAge, req.allowedJurisdictions, req.requireAccredited);
     }
 }
 
