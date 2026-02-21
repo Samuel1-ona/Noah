@@ -3,10 +3,11 @@ import { Hero } from './components/Hero';
 import { ProcessFlow } from './components/ProcessFlow';
 import { IdentityVerification } from './components/Demo/IdentityVerification';
 import { SDKDocs } from './components/Docs/SDKDocs';
+import { PitchDeck } from './components/PitchDeck';
 import { Github, Twitter, Menu } from 'lucide-react';
 
 function App() {
-  const [view, setView] = useState<'landing' | 'demo' | 'docs'>('landing');
+  const [view, setView] = useState<'landing' | 'demo' | 'docs' | 'pitch'>('landing');
 
   // Sync scroll on view change
   useEffect(() => {
@@ -113,6 +114,10 @@ function App() {
     );
   }
 
+  if (view === 'pitch') {
+    return <PitchDeck onClose={() => setView('landing')} />;
+  }
+
   return (
     <div className="app">
       {/* Navbar */}
@@ -162,7 +167,7 @@ function App() {
       </nav>
 
       <main>
-        <Hero onLaunchDemo={() => setView('demo')} />
+        <Hero onLaunchDemo={() => setView('demo')} onOpenPitch={() => setView('pitch')} />
         <ProcessFlow />
 
         {/* Mini Demo Section for Landing */}

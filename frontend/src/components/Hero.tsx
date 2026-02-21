@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { ArrowRight, Github, Zap } from 'lucide-react';
 
-export const Hero: React.FC<{ onLaunchDemo: () => void }> = ({ onLaunchDemo }) => {
+export const Hero: React.FC<{ onLaunchDemo: () => void; onOpenPitch: () => void }> = ({ onLaunchDemo, onOpenPitch }) => {
     return (
         <section className="container" style={{ paddingTop: '8rem', paddingBottom: '4rem' }}>
             <div className="bg-glow" />
@@ -10,45 +10,18 @@ export const Hero: React.FC<{ onLaunchDemo: () => void }> = ({ onLaunchDemo }) =
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6 }}
-                    style={{
-                        padding: '0.5rem 1rem',
-                        borderRadius: '2rem',
-                        background: 'var(--primary-subtle)',
-                        border: '1px solid var(--primary)',
-                        color: 'var(--primary)',
-                        fontSize: '0.875rem',
-                        fontWeight: 600,
-                        marginBottom: '2rem',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '0.5rem'
-                    }}
+                    transition={{ duration: 0.5 }}
                 >
-                    <Zap size={16} /> Now Live on Avalanche
+                    <h1 style={{ fontSize: '4rem', fontWeight: 800, lineHeight: 1.1, marginBottom: '1.5rem', letterSpacing: '-0.02em' }}>
+                        The Privacy Layer for <br />
+                        <span className="text-gradient">Avalanche Identity</span>
+                    </h1>
                 </motion.div>
 
-                <motion.h1
+                <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, delay: 0.2 }}
-                    className="gradient-text"
-                    style={{
-                        fontSize: 'clamp(3rem, 10vw, 5rem)',
-                        fontWeight: 800,
-                        lineHeight: 1.1,
-                        letterSpacing: '-0.02em',
-                        maxWidth: '900px',
-                        marginBottom: '1.5rem'
-                    }}
-                >
-                    Private Identity for the Avalanche Ecosystem
-                </motion.h1>
-
-                <motion.p
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, delay: 0.4 }}
                     style={{
                         fontSize: '1.25rem',
                         color: 'var(--text-muted)',
@@ -59,20 +32,27 @@ export const Hero: React.FC<{ onLaunchDemo: () => void }> = ({ onLaunchDemo }) =
                 >
                     Securely verify your identity using Zero-Knowledge Proofs.
                     Verified once, reusable across Gaming, Consumer Apps, and DeFi on Avalanche.
-                </motion.p>
+                </motion.div>
 
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, delay: 0.6 }}
+                    transition={{ duration: 0.6, delay: 0.4 }}
                     style={{ display: 'flex', gap: '1rem' }}
                 >
                     <button
                         onClick={onLaunchDemo}
                         className="btn btn-primary"
-                        style={{ gap: '0.75rem', textDecoration: 'none', border: 'none' }}
+                        style={{ gap: '0.75rem', border: 'none' }}
                     >
                         Launch Demo <ArrowRight size={20} />
+                    </button>
+                    <button
+                        onClick={onOpenPitch}
+                        className="btn btn-outline"
+                        style={{ gap: '0.75rem', borderColor: 'var(--primary)', color: 'var(--primary)' }}
+                    >
+                        View Pitch Deck <Zap size={18} />
                     </button>
                     <a href="https://github.com/Samuel1-ona/Noah" target="_blank" rel="noopener noreferrer" className="btn btn-outline" style={{ gap: '0.75rem', textDecoration: 'none' }}>
                         <Github size={20} /> GitHub
@@ -83,7 +63,7 @@ export const Hero: React.FC<{ onLaunchDemo: () => void }> = ({ onLaunchDemo }) =
             <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 1, delay: 0.8 }}
+                transition={{ duration: 1, delay: 0.6 }}
                 style={{ marginTop: '5rem', position: 'relative' }}
             >
                 <div className="glass" style={{
