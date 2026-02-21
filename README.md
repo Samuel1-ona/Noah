@@ -1,10 +1,25 @@
 # NOAH: Privacy-Preserving KYC for Avalanche
 
-**NOAH** (Network for On-chain Authenticated Handshakes) is a state-of-the-art, zero-knowledge proof-based identity protocol for the Avalanche ecosystem. It enables DeFi protocols to verify user compliance (age, jurisdiction, sanctions) without ever touching or storing personal data.
+**NOAH** (Network for On-chain Authenticated Handshakes) is a state-of-the-art, zero-knowledge proof-based identity protocol for the Avalanche ecosystem. It enables applications (Gaming, DeFi, and Consumer Apps) to verify user compliance (age, jurisdiction, sanctions) without ever touching or storing personal data.
 
 ## 🚀 The Noah Vision: "Verify Once, Use Everywhere"
 
-Noah eliminates the redundancy of KYC in DeFi. By using Zero-Knowledge Proofs (ZKP), users bind their identity to their wallet address once. This verification is then instantly reusable across every integrated protocol on Avalanche, while maintaining 100% user privacy.
+Noah eliminates the redundancy of KYC on-chain. By using Zero-Knowledge Proofs (ZKP), users bind their identity to their wallet address once. This verification is then instantly reusable across every integrated app on Avalanche—from DeFi protocols to Web3 games—while maintaining 100% user privacy.
+
+---
+
+## 🌟 Use Cases
+
+Here is what you can build with Noah:
+
+### 1. Gaming & Web3 E-Sports
+Keep your leaderboards fair. Verify that each player is a unique human behind the keyboard, putting an end to multi-accounting and bots.
+
+### 2. Consumer Applications
+Age-gate your content or services effortlessly. Prove your user is over 18 without asking them to upload a photo of their ID card to your servers.
+
+### 3. DeFi & RWA Platforms
+Onboard users securely. Meet strict KYC requirements while preserving your users' on-chain privacy.
 
 ---
 

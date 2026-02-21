@@ -1,0 +1,51 @@
+# Noah Protocol: Full Technical Context
+
+This document is specialized for Large Language Models (LLMs) to provide complete context for the Noah Protocol.
+
+## Protocol Summary
+Noah is an Avalanche-native ZK-Identity layer. It uses Groth16 proofs (via Gnark) to enable private attribute verification.
+
+## Architecture & Flows
+The protocol follows a "Backend-less" architecture where all sensitive data extraction (OCR) and proof generation (WASM) happens on the client side via the Noah SDK.
+
+### The Trust Model
+Noah uses a "Trusted Issuer" model.
+1. **Issuer (Oracle)**: Verifies real-world documents and registers a `credentialHash` on-chain.
+2. **User (Prover)**: Generates a ZK proof locally that they possess a valid hash in the registry.
+3. **Protocol (Verifier)**: Checks the ZK proof against the registry without seeing raw data.
+
+## Core Smart Contracts
+
+### CredentialRegistry.sol
+Manages the mapping of identity hashes to wallets.
+- **Roles**: `DEFAULT_ADMIN_ROLE`, `ISSUER_MANAGER_ROLE`.
+- **Functions**: `registerCredential`, `revokeCredential`, `addIssuer`.
+
+### ProtocolAccessControl.sol
+Gatekeeper for DeFi/Gaming apps.
+- **Concepts**: Requirements (minAge, allowedJurisdictions).
+- **Functions**: `verifyAndGrantAccess`.
+
+## Noah SDK Usage Patterns
+
+### Initialization
+```typescript
+const sdk = new NoahSDK({ provider, network: 'fuji' });
+```
+
+### Proving & Granting (Combined)
+```typescript
+const tx = await sdk.proveAndGrant(signer, protocolAddress, mrzData, 18);
+```
+
+## Error Handling
+The SDK uses specialized error classes:
+- `NoahValidationError`: Pre-flight check failures.
+- `NoahProverError`: ZK generation issues.
+- `NoahError`: General internal protocol errors.
+
+## Circuit Logic (Gnark)
+The circuit (BN254 curve) verifies:
+1. `CurrentYear - BirthYear >= MinAge`
+2. `PassportHash == RegisteredHash`
+3. `UserAddress == SignedAddress` (Prevention of proof theft)

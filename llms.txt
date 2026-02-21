@@ -1,0 +1,20 @@
+# Noah Protocol
+
+> Privacy-preserving KYC for the Multi-Chain Future on Avalanche.
+
+Noah is a decentralized identity protocol that enables **"Verify Once, Use Everywhere"** identity verification. By leveraging Zero-Knowledge Proofs (ZKP), Noah allows users to prove attributes (like age or citizenship) without revealing their underlying data.
+
+## Key Resources
+
+- [Architecture](./README.md#architecture-backend-less--decentralized): Technical overview of the Noah protocol layers.
+- [SDK Introduction](./README.md#noah-sdk-client-side): Documentation for the unified Noah SDK facade.
+- [Use Cases](./README.md#-use-cases): Implementation scenarios for Gaming, DeFi, and Consumer Apps.
+- [Smart Contracts](./src/): Solidity contracts for credential registry and access control.
+- [Full LLM Context](./docs/llms-full.txt): Comprehensive technical context for advanced AI agents.
+
+## Core Components
+
+- **CredentialRegistry.sol**: RBAC-secured registry for identity-wallet bindings.
+- **ProtocolAccessControl.sol**: On-chain gateway for setting and verifying identity requirements.
+- **ZK Prover (Gnark)**: Client-side WASM prover for generating Groth16 proofs.
+- **Noah SDK**: High-level TypeScript library for proving and granting access.

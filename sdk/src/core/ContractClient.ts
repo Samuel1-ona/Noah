@@ -1,9 +1,12 @@
 import {
   ethers,
+  BrowserProvider,
+  JsonRpcProvider,
   type Provider,
   type Signer,
   type Contract,
-  type ContractTransactionResponse
+  type ContractTransactionResponse,
+  type Eip1193Provider
 } from 'ethers';
 import type {
   ContractAddresses,
@@ -17,7 +20,7 @@ import type {
 } from '../utils/types.js';
 
 /**
- * Contract ABIs (minimal for read operations)
+ * Contract ABIs (synchronized with production contracts)
  */
 const CREDENTIAL_REGISTRY_ABI = [
   'function isCredentialValid(bytes32 credentialHash) view returns (bool)',
@@ -26,12 +29,14 @@ const CREDENTIAL_REGISTRY_ABI = [
   'function trustedIssuers(address) view returns (bool)',
   'function issuerNames(address) view returns (string)',
   'function credentialIssuers(bytes32) view returns (address)',
+  'function nullifierOwners(bytes32) view returns (address)',
   'function registerCredential(bytes32 credentialHash, address user)',
-  'function registerNullifier(bytes32 nullifier, bytes32 credentialHash)',
+  'function registerNullifier(bytes32 nullifier, bytes32 credentialHash, address user)',
   'function revokeCredential(bytes32 credentialHash)',
+  'function hasRole(bytes32 role, address account) view returns (bool)',
   'event CredentialIssued(address indexed user, bytes32 indexed credentialHash, address indexed issuer, uint256 timestamp)',
   'event CredentialRevoked(bytes32 indexed credentialHash, address indexed issuer, uint256 timestamp)',
-  'event NullifierRegistered(bytes32 indexed nullifier, bytes32 indexed credentialHash)',
+  'event NullifierRegistered(bytes32 indexed nullifier, bytes32 indexed credentialHash, address indexed user)',
 ] as const;
 
 const PROTOCOL_ACCESS_CONTROL_ABI = [
@@ -62,27 +67,34 @@ export class ContractClient {
    * @param config - Configuration options including provider, contract addresses, and RPC URL
    */
   constructor(config?: ContractClientConfig) {
-    // Default contract addresses (can be overridden via config)
     this.contractAddresses = config?.contractAddresses || {
       CredentialRegistry: '0x5d311f246ef87d24B045D961aA6da62a758514f7',
       ZKVerifier: '0x96f43E12280676866bBe13E0120Bb5892fCbfE0b',
       ProtocolAccessControl: '0xF599F186aC6fD2a9bECd9eDEE91fd58D3Dc3dB0A',
     };
 
-    this.rpcUrl = config?.rpcUrl || 'https://api.avax-test.network/ext/bc/C/rpc'; // Avalanche Fuji
+    this.rpcUrl = config?.rpcUrl || 'https://api.avax-test.network/ext/bc/C/rpc';
 
-    // Initialize if provider is provided
     if (config?.provider) {
       this.initialize(config.provider);
     }
   }
 
   /**
-   * Initialize provider and contracts
-   * @param provider - Optional provider (defaults to RPC provider)
+   * Initialize provider and contracts with robust support for various provider types
+   * @param inputProvider - EIP-1193 provider (window.ethereum), Ethers Provider, or custom
    */
-  initialize(provider?: Provider): void {
-    this.provider = provider || new ethers.JsonRpcProvider(this.rpcUrl);
+  initialize(inputProvider?: any): void {
+    if (!inputProvider) {
+      this.provider = new JsonRpcProvider(this.rpcUrl);
+    } else if (inputProvider.request) {
+      // It's an EIP-1193 provider (MetaMask, etc.)
+      this.provider = new BrowserProvider(inputProvider as Eip1193Provider);
+    } else {
+      // Assume it's already an ethers-compatible provider
+      this.provider = inputProvider as Provider;
+    }
+
     this.credentialRegistry = new ethers.Contract(
       this.contractAddresses.CredentialRegistry,
       CREDENTIAL_REGISTRY_ABI,
@@ -96,321 +108,103 @@ export class ContractClient {
   }
 
   /**
-   * Check if a credential is valid (exists and not revoked)
-   * @param credentialHash - The credential hash to check (bytes32)
-   * @returns Promise resolving to true if credential is valid
-   * @throws Error if the contract call fails
+   * Pre-flight validation for proof inputs
    */
-  async isCredentialValid(credentialHash: string): Promise<boolean> {
-    if (!this.credentialRegistry) {
-      this.initialize();
+  validateProofInput(publicSignals: (string | number)[]): void {
+    if (!publicSignals || publicSignals.length < 28) {
+      throw new Error(`Invalid public signals length: expected 28, got ${publicSignals?.length || 0}`);
     }
+    // Check isValid bit
+    if (publicSignals[25] != "1" && publicSignals[25] != 1) {
+      throw new Error("ZK Proof internal validation failed (isValid signal is not 1)");
+    }
+  }
+
+  async isCredentialValid(credentialHash: string): Promise<boolean> {
+    if (!this.credentialRegistry) this.initialize();
     try {
       return await this.credentialRegistry!.isCredentialValid(credentialHash);
     } catch (error) {
-      console.error('Error checking credential validity:', error);
-      throw error;
+      throw new Error(`Failed to check credential validity: ${error}`);
     }
   }
 
-  /**
-   * Check if a nullifier has already been used
-   * @param nullifier - The unique nullifier hash (bytes32)
-   * @returns Promise resolving to true if nullifier is already used
-   */
   async isNullifierUsed(nullifier: string): Promise<boolean> {
-    if (!this.credentialRegistry) {
-      this.initialize();
-    }
+    if (!this.credentialRegistry) this.initialize();
     try {
-      return await this.credentialRegistry!.nullifiers(nullifier);
+      const owner = await this.credentialRegistry!.nullifierOwners(nullifier);
+      return owner !== ethers.ZeroAddress;
     } catch (error) {
-      console.error('Error checking nullifier status:', error);
-      throw error;
+      throw new Error(`Failed to check nullifier status: ${error}`);
     }
   }
 
-  /**
-   * Check if user has access to a protocol
-   * @param protocolAddress - The protocol contract address
-   * @param userAddress - The user's wallet address
-   * @returns Promise resolving to true if user has access
-   * @throws Error if the contract call fails
-   */
   async hasAccess(protocolAddress: string, userAddress: string): Promise<boolean> {
-    if (!this.protocolAccessControl) {
-      this.initialize();
-    }
+    if (!this.protocolAccessControl) this.initialize();
     try {
       return await this.protocolAccessControl!.hasAccess(protocolAddress, userAddress);
     } catch (error) {
-      console.error('Error checking access:', error);
-      throw error;
+      throw new Error(`Failed to check access: ${error}`);
     }
   }
 
-  /**
-   * Get protocol requirements
-   * @param protocolAddress - The protocol contract address
-   * @returns Promise resolving to Requirements object
-   * @throws Error if the contract call fails
-   */
   async getRequirements(protocolAddress: string): Promise<Requirements> {
-    if (!this.protocolAccessControl) {
-      this.initialize();
-    }
+    if (!this.protocolAccessControl) this.initialize();
     try {
       const [minAge, requireAccredited, isSet] =
         await this.protocolAccessControl!.protocolRequirements(protocolAddress);
 
       return {
         minAge: Number(minAge),
-        allowedJurisdictions: [], // Public mapping getter does not return arrays
+        allowedJurisdictions: [],
         requireAccredited,
         isSet,
       };
     } catch (error) {
-      console.error('Error getting requirements:', error);
-      throw error;
+      throw new Error(`Failed to get protocol requirements: ${error}`);
     }
   }
 
-  /**
-   * Get user's credential hash for a protocol
-   * @param protocolAddress - The protocol contract address
-   * @param userAddress - The user's wallet address
-   * @returns Promise resolving to credential hash (bytes32)
-   * @throws Error if the contract call fails
-   */
   async getUserCredential(protocolAddress: string, userAddress: string): Promise<string> {
-    if (!this.protocolAccessControl) {
-      this.initialize();
-    }
+    if (!this.protocolAccessControl) this.initialize();
     try {
       return await this.protocolAccessControl!.userCredentials(protocolAddress, userAddress);
     } catch (error) {
-      console.error('Error getting user credential:', error);
-      throw error;
+      throw new Error(`Failed to get user credential: ${error}`);
     }
   }
 
-  /**
-   * Get issuer information
-   * @param issuerAddress - The issuer's wallet address
-   * @returns Promise resolving to IssuerInfo object
-   * @throws Error if the contract call fails
-   */
-  async getIssuerInfo(issuerAddress: string): Promise<IssuerInfo> {
-    if (!this.credentialRegistry) {
-      this.initialize();
-    }
-    try {
-      const isTrusted = await this.credentialRegistry!.trustedIssuers(issuerAddress);
-      const name = await this.credentialRegistry!.issuerNames(issuerAddress);
-      return { isTrusted, name };
-    } catch (error) {
-      console.error('Error getting issuer info:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Listen for credential issued events
-   * @param callback - Callback function to handle events
-   * @returns Contract event listener
-   */
-  onCredentialIssued(callback: EventCallback): void {
-    if (!this.credentialRegistry) {
-      this.initialize();
-    }
-    this.credentialRegistry!.on('CredentialIssued', callback);
-  }
-
-  /**
-   * Remove listener for credential issued events
-   * @param callback - The callback function that was registered
-   */
-  offCredentialIssued(callback: EventCallback): void {
-    if (this.credentialRegistry) {
-      this.credentialRegistry.off('CredentialIssued', callback);
-    }
-  }
-
-  /**
-   * Listen for access granted events
-   * @param callback - Callback function to handle events
-   * @returns Contract event listener
-   */
-  onAccessGranted(callback: EventCallback): void {
-    if (!this.protocolAccessControl) {
-      this.initialize();
-    }
-    this.protocolAccessControl!.on('AccessGranted', callback);
-  }
-
-  /**
-   * Remove listener for access granted events
-   * @param callback - The callback function that was registered
-   */
-  offAccessGranted(callback: EventCallback): void {
-    if (this.protocolAccessControl) {
-      this.protocolAccessControl.off('AccessGranted', callback);
-    }
-  }
-
-  /**
-   * Set protocol requirements (requires signer)
-   * @param signer - The signer (from user's wallet)
-   * @param minAge - Minimum age required
-   * @param allowedJurisdictions - Array of jurisdiction hashes (as strings or numbers)
-   * @param requireAccredited - Whether accredited status is required
-   * @returns Promise resolving to TransactionResult with hash and receipt
-   * @throws Error if signer is not provided or transaction fails
-   */
-  async setRequirements(
-    signer: Signer,
-    minAge: number,
-    allowedJurisdictions: (string | number)[],
-    requireAccredited: boolean
-  ): Promise<TransactionResult> {
-    if (!signer) {
-      throw new Error('Signer is required to set requirements');
-    }
-
-    // Initialize contract with signer
-    const accessControl = new ethers.Contract(
-      this.contractAddresses.ProtocolAccessControl,
-      PROTOCOL_ACCESS_CONTROL_ABI,
-      signer
-    );
-
-    // Convert jurisdictions to BigInt array
-    const jurisdictionsArray = allowedJurisdictions.map(j => {
-      if (typeof j === 'string') {
-        return BigInt(j);
-      }
-      return BigInt(j);
-    });
-
-    try {
-      const tx = await accessControl.setRequirements(
-        BigInt(minAge),
-        jurisdictionsArray,
-        requireAccredited
-      ) as ContractTransactionResponse;
-
-      const receipt = await tx.wait();
-
-      if (!receipt) {
-        throw new Error('Transaction receipt is null');
-      }
-
-      return {
-        transactionHash: tx.hash,
-        receipt,
-      };
-    } catch (error) {
-      console.error('Error setting requirements:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Register a credential (requires issuer signer)
-   * @param signer - The signer (from issuer's wallet)
-   * @param credentialHash - The credential hash (bytes32)
-   * @param userAddress - The user's address
-   * @returns Promise resolving to TransactionResult with hash and receipt
-   * @throws Error if signer is not provided or transaction fails
-   */
   async registerCredential(
     signer: Signer,
     credentialHash: string,
     userAddress: string
   ): Promise<TransactionResult> {
-    if (!signer) {
-      throw new Error('Signer is required to register credential');
-    }
-
-    // Initialize contract with signer
-    const credentialRegistry = new ethers.Contract(
-      this.contractAddresses.CredentialRegistry,
-      CREDENTIAL_REGISTRY_ABI,
-      signer
-    );
-
+    if (!signer) throw new Error('Signer is required');
+    const contract = new ethers.Contract(this.contractAddresses.CredentialRegistry, CREDENTIAL_REGISTRY_ABI, signer);
     try {
-      const tx = await credentialRegistry.registerCredential(
-        credentialHash,
-        userAddress
-      ) as ContractTransactionResponse;
-
+      const tx = await contract.registerCredential(credentialHash, userAddress) as ContractTransactionResponse;
       const receipt = await tx.wait();
-
-      if (!receipt) {
-        throw new Error('Transaction receipt is null');
-      }
-
-      return {
-        transactionHash: tx.hash,
-        receipt,
-      };
+      return { transactionHash: tx.hash, receipt };
     } catch (error) {
-      console.error('Error registering credential:', error);
-      throw error;
+      throw new Error(`Failed to register credential: ${error}`);
     }
   }
 
-  /**
-   * Revoke a credential (requires issuer signer)
-   * @param signer - The signer (from issuer's wallet)
-   * @param credentialHash - The credential hash (bytes32)
-   * @returns Promise resolving to TransactionResult with hash and receipt
-   * @throws Error if signer is not provided or transaction fails
-   */
   async revokeCredential(
     signer: Signer,
     credentialHash: string
   ): Promise<TransactionResult> {
-    if (!signer) {
-      throw new Error('Signer is required to revoke credential');
-    }
-
-    // Initialize contract with signer
-    const credentialRegistry = new ethers.Contract(
-      this.contractAddresses.CredentialRegistry,
-      CREDENTIAL_REGISTRY_ABI,
-      signer
-    );
-
+    if (!signer) throw new Error('Signer is required');
+    const contract = new ethers.Contract(this.contractAddresses.CredentialRegistry, CREDENTIAL_REGISTRY_ABI, signer);
     try {
-      const tx = await credentialRegistry.revokeCredential(credentialHash) as ContractTransactionResponse;
+      const tx = await contract.revokeCredential(credentialHash) as ContractTransactionResponse;
       const receipt = await tx.wait();
-
-      if (!receipt) {
-        throw new Error('Transaction receipt is null');
-      }
-
-      return {
-        transactionHash: tx.hash,
-        receipt,
-      };
+      return { transactionHash: tx.hash, receipt };
     } catch (error) {
-      console.error('Error revoking credential:', error);
-      throw error;
+      throw new Error(`Failed to revoke credential: ${error}`);
     }
   }
 
-  /**
-   * Verify proof and grant access (requires protocol signer)
-   * @param signer - The signer (from protocol's wallet)
-   * @param proof - Proof object with a, b, c arrays
-   * @param publicSignals - Public signals array (13 elements)
-   * @param credentialHash - The credential hash (bytes32)
-   * @param userAddress - The user's address
-   * @returns Promise resolving to TransactionResult with hash and receipt
-   * @throws Error if signer is not provided or transaction fails
-   */
   async verifyAndGrantAccess(
     signer: Signer,
     proof: Proof | ZKProof,
@@ -418,18 +212,17 @@ export class ContractClient {
     credentialHash: string,
     userAddress: string
   ): Promise<TransactionResult> {
-    if (!signer) {
-      throw new Error('Signer is required to verify and grant access');
-    }
+    if (!signer) throw new Error('Signer is required to verify and grant access');
 
-    // Initialize contract with signer
+    // Pre-flight check
+    this.validateProofInput(publicSignals);
+
     const accessControl = new ethers.Contract(
       this.contractAddresses.ProtocolAccessControl,
       PROTOCOL_ACCESS_CONTROL_ABI,
       signer
     );
 
-    // Convert proof arrays to BigInt arrays
     const a: [bigint, bigint] = [BigInt(proof.a[0]), BigInt(proof.a[1])];
     const b: [[bigint, bigint], [bigint, bigint]] = [
       [BigInt(proof.b[0][0]), BigInt(proof.b[0][1])],
@@ -437,56 +230,27 @@ export class ContractClient {
     ];
     const c: [bigint, bigint] = [BigInt(proof.c[0]), BigInt(proof.c[1])];
 
-    // Convert public signals to BigInt array (28 elements)
     const publicSignalsArray = publicSignals.slice(0, 28).map(s => BigInt(s));
 
     try {
       const tx = await accessControl.verifyAndGrantAccess(
-        a,
-        b,
-        c,
+        a, b, c,
         publicSignalsArray,
         credentialHash,
         userAddress
       ) as ContractTransactionResponse;
 
       const receipt = await tx.wait();
-
-      if (!receipt) {
-        throw new Error('Transaction receipt is null');
-      }
+      if (!receipt) throw new Error('Transaction failed: No receipt returned');
 
       return {
         transactionHash: tx.hash,
         receipt,
       };
     } catch (error) {
-      console.error('Error verifying proof and granting access:', error);
-      throw error;
+      throw new Error(`Contract verification failed: ${error}`);
     }
   }
 
-  /**
-   * Get the current provider
-   * @returns The current provider or null if not initialized
-   */
-  getProvider(): Provider | null {
-    return this.provider;
-  }
-
-  /**
-   * Get the credential registry contract instance
-   * @returns The credential registry contract or null if not initialized
-   */
-  getCredentialRegistry(): Contract | null {
-    return this.credentialRegistry;
-  }
-
-  /**
-   * Get the protocol access control contract instance
-   * @returns The protocol access control contract or null if not initialized
-   */
-  getProtocolAccessControl(): Contract | null {
-    return this.protocolAccessControl;
-  }
+  getProvider(): Provider | null { return this.provider; }
 }

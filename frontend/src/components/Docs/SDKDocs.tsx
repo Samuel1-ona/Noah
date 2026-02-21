@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BookOpen, Box, Terminal, Code2, Layers, Copy, Check, ChevronRight } from 'lucide-react';
 
-type Section = 'overview' | 'installation' | 'initialization' | 'proving' | 'verifying' | 'examples';
+type Section = 'overview' | 'use-cases' | 'installation' | 'initialization' | 'proving' | 'verifying' | 'examples';
 
 export const SDKDocs: React.FC = () => {
     const [activeSection, setActiveSection] = useState<Section>('overview');
@@ -16,6 +16,7 @@ export const SDKDocs: React.FC = () => {
 
     const sidebarItems: { id: Section; label: string; icon: any }[] = [
         { id: 'overview', label: 'Overview', icon: <BookOpen size={18} /> },
+        { id: 'use-cases', label: 'Use Cases', icon: <Layers size={18} /> },
         { id: 'installation', label: 'Installation', icon: <Box size={18} /> },
         { id: 'initialization', label: 'Initialization', icon: <Terminal size={18} /> },
         { id: 'proving', label: 'Proof Generation', icon: <Code2 size={18} /> },
@@ -67,7 +68,7 @@ export const SDKDocs: React.FC = () => {
                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
                         <h1 style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '1.5rem' }}>Noah SDK Overview</h1>
                         <p style={{ fontSize: '1.125rem', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '2rem' }}>
-                            The Noah SDK is a client-side library that enables developers to integrate privacy-preserving identity verification into their Avalanche dApps.
+                            The Noah SDK is a client-side library that enables developers to integrate privacy-preserving identity verification into Gaming, Consumer Apps, and DeFi protocols on Avalanche.
                             It handles complex cryptographic operations locally, ensuring user data never leaves their device.
                         </p>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
@@ -78,6 +79,53 @@ export const SDKDocs: React.FC = () => {
                             <div className="glass" style={{ padding: '1.5rem' }}>
                                 <h3 style={{ marginBottom: '0.5rem' }}>Avalanche Native</h3>
                                 <p style={{ color: 'var(--text-dim)', fontSize: '0.9rem' }}>Optimized for the Avalanche C-Chain with minimal gas footprints and fast settlement.</p>
+                            </div>
+                        </div>
+                    </motion.div>
+                );
+            case 'use-cases':
+                return (
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+                        <h1 style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '1.5rem' }}>Use Cases</h1>
+                        <p style={{ fontSize: '1.125rem', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '2.5rem' }}>
+                            Discover how Noah's privacy-preserving ZK-Identity can transform your application.
+                        </p>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                            <div className="glass" style={{ padding: '2rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+                                    <div style={{ background: 'var(--primary-subtle)', padding: '0.75rem', borderRadius: '0.75rem' }}>
+                                        <Code2 className="text-primary" size={24} />
+                                    </div>
+                                    <h3 style={{ fontSize: '1.5rem', fontWeight: 700 }}>Gaming & Web3 E-Sports</h3>
+                                </div>
+                                <p style={{ color: 'var(--text-muted)', lineHeight: 1.6 }}>
+                                    Keep your leaderboards fair. Verify that each player is a unique human behind the keyboard, putting an end to multi-accounting and bots.
+                                </p>
+                            </div>
+
+                            <div className="glass" style={{ padding: '2rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+                                    <div style={{ background: 'var(--primary-subtle)', padding: '0.75rem', borderRadius: '0.75rem' }}>
+                                        <Layers className="text-primary" size={24} />
+                                    </div>
+                                    <h3 style={{ fontSize: '1.5rem', fontWeight: 700 }}>Consumer Applications</h3>
+                                </div>
+                                <p style={{ color: 'var(--text-muted)', lineHeight: 1.6 }}>
+                                    Age-gate your content or services effortlessly. Prove your user is over 18 without asking them to upload a photo of their ID card to your servers.
+                                </p>
+                            </div>
+
+                            <div className="glass" style={{ padding: '2rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+                                    <div style={{ background: 'var(--primary-subtle)', padding: '0.75rem', borderRadius: '0.75rem' }}>
+                                        <Box className="text-primary" size={24} />
+                                    </div>
+                                    <h3 style={{ fontSize: '1.5rem', fontWeight: 700 }}>DeFi & RWA Platforms</h3>
+                                </div>
+                                <p style={{ color: 'var(--text-muted)', lineHeight: 1.6 }}>
+                                    Onboard users securely. Meet strict KYC requirements while preserving your users' on-chain privacy.
+                                </p>
                             </div>
                         </div>
                     </motion.div>

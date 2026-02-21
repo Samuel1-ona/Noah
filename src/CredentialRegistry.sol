@@ -1,12 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+
 /**
  * @title CredentialRegistry
  * @notice Manages ZK-KYC credentials on-chain
  * @dev Stores credential hashes and manages trusted issuers and revocations
  */
-contract CredentialRegistry {
+contract CredentialRegistry is AccessControl {
+    bytes32 public constant ISSUER_MANAGER_ROLE = keccak256("ISSUER_MANAGER_ROLE");
+
     // Events
     event CredentialIssued(
         address indexed user,
@@ -24,7 +28,7 @@ contract CredentialRegistry {
     event IssuerAdded(address indexed issuer, string name);
     event IssuerRemoved(address indexed issuer);
     
-    event NullifierRegistered(bytes32 indexed nullifier, bytes32 indexed credentialHash);
+    event NullifierRegistered(bytes32 indexed nullifier, bytes32 indexed credentialHash, address indexed user);
     
     // State variables
     mapping(bytes32 => bool) public credentials; // credentialHash => exists
@@ -35,20 +39,14 @@ contract CredentialRegistry {
     
     mapping(bytes32 => address) public nullifierOwners; // nullifier => user address
     
-    address public owner;
-    
-    modifier onlyOwner() {
-        require(msg.sender == owner, "Not owner");
-        _;
-    }
-    
     modifier onlyIssuer() {
         require(trustedIssuers[msg.sender], "Not trusted issuer");
         _;
     }
     
     constructor() {
-        owner = msg.sender;
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _grantRole(ISSUER_MANAGER_ROLE, msg.sender);
     }
     
     /**
@@ -92,7 +90,7 @@ contract CredentialRegistry {
             require(nullifierOwners[nullifier] == user, "Identity bound to another wallet");
         }
         
-        emit NullifierRegistered(nullifier, credentialHash);
+        emit NullifierRegistered(nullifier, credentialHash, user);
     }
     
     /**
@@ -105,7 +103,7 @@ contract CredentialRegistry {
             "Credential does not exist"
         );
         require(
-            credentialIssuers[credentialHash] == msg.sender || msg.sender == owner,
+            credentialIssuers[credentialHash] == msg.sender || hasRole(DEFAULT_ADMIN_ROLE, msg.sender),
             "Not authorized to revoke"
         );
         
@@ -128,7 +126,7 @@ contract CredentialRegistry {
      * @param issuer The address of the issuer
      * @param name The name of the issuer
      */
-    function addIssuer(address issuer, string memory name) external onlyOwner {
+    function addIssuer(address issuer, string memory name) external onlyRole(ISSUER_MANAGER_ROLE) {
         require(!trustedIssuers[issuer], "Issuer already exists");
         trustedIssuers[issuer] = true;
         issuerNames[issuer] = name;
@@ -140,11 +138,10 @@ contract CredentialRegistry {
      * @notice Remove a trusted KYC issuer
      * @param issuer The address of the issuer to remove
      */
-    function removeIssuer(address issuer) external onlyOwner {
+    function removeIssuer(address issuer) external onlyRole(ISSUER_MANAGER_ROLE) {
         require(trustedIssuers[issuer], "Issuer does not exist");
         trustedIssuers[issuer] = false;
         
         emit IssuerRemoved(issuer);
     }
 }
-

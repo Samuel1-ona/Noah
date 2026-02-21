@@ -10,6 +10,17 @@ import "./CredentialRegistry.sol";
  * @dev Protocols can set requirements and verify users meet them via ZK proofs
  */
 contract ProtocolAccessControl {
+    // Public Signal Indices (Constants for Gas Optimization)
+    uint256 private constant INDEX_MIN_AGE = 0;
+    uint256 private constant INDEX_JURISDICTION_START = 1;
+    uint256 private constant INDEX_ACCREDITED = 11;
+    uint256 private constant INDEX_CREDENTIAL_HASH = 12;
+    uint256 private constant INDEX_USER_ADDRESS = 13;
+    uint256 private constant INDEX_CURRENT_DATE = 14;
+    uint256 private constant INDEX_IS_VALID = 25;
+    uint256 private constant INDEX_NULLIFIER = 26;
+    uint256 private constant INDEX_PACKED_FLAGS = 27;
+
     // Events
     event RequirementsSet(
         address indexed protocol,
@@ -21,7 +32,7 @@ contract ProtocolAccessControl {
     event AccessGranted(
         address indexed user,
         address indexed protocol,
-        bytes32 credentialHash,
+        bytes32 indexed credentialHash,
         uint256 timestamp
     );
     
@@ -110,14 +121,14 @@ contract ProtocolAccessControl {
         // Verify ZK proof
         bool proofValid = zkVerifier.verifyProof(a, b, c, publicSignals);
         require(proofValid, "Invalid proof");
-        require(publicSignals[25] == 1, "Circuit isValid output must be 1");
+        require(publicSignals[INDEX_IS_VALID] == 1, "Circuit isValid output must be 1");
         
         // 1. Verify MinAge requirement matches
-        require(publicSignals[0] == req.minAge, "Age requirement mismatch");
+        require(publicSignals[INDEX_MIN_AGE] == req.minAge, "Age requirement mismatch");
         
         // 2. Verify Jurisdictions match
         for (uint i = 0; i < 10; i++) {
-            uint256 proofJurisdiction = publicSignals[i + 1];
+            uint256 proofJurisdiction = publicSignals[INDEX_JURISDICTION_START + i];
             if (i < req.allowedJurisdictions.length) {
                 require(proofJurisdiction == req.allowedJurisdictions[i], "Jurisdiction requirement mismatch");
             } else {
@@ -127,18 +138,17 @@ contract ProtocolAccessControl {
 
         // 3. Verify Accreditation requirement matches
         uint256 reqAccredited = req.requireAccredited ? 1 : 0;
-        require(publicSignals[11] == reqAccredited, "Accreditation requirement mismatch");
+        require(publicSignals[INDEX_ACCREDITED] == reqAccredited, "Accreditation requirement mismatch");
 
         // 4. Verify Proof is bound to the User Wallet (recipientAddress)
-        // This prevents replaying proofs presented by other users
-        require(publicSignals[13] == uint256(uint160(user)), "Proof not bound to this user");
+        require(publicSignals[INDEX_USER_ADDRESS] == uint256(uint160(user)), "Proof not bound to this user");
 
         // 5. Verify Credential Hash matches (truncated 60-bit hash)
         uint256 truncatedHash = uint256(credentialHash) & 0xFFFFFFFFFFFFFFF;
-        require(publicSignals[12] == truncatedHash, "Credential hash mismatch");
+        require(publicSignals[INDEX_CREDENTIAL_HASH] == truncatedHash, "Credential hash mismatch");
 
         // 6. Verify Packed Flags (isOver18, isOver21, validExpiry, isNotSanctioned)
-        uint256 packedFlags = publicSignals[27];
+        uint256 packedFlags = publicSignals[INDEX_PACKED_FLAGS];
         // bit 0: isOver18, bit 1: isOver21, bit 2: validExpiry, bit 3: isNotSanctioned
         require((packedFlags & 0x4) != 0, "Passport expired");
         require((packedFlags & 0x8) != 0, "Nationality sanctioned");
@@ -150,11 +160,11 @@ contract ProtocolAccessControl {
         }
 
         // 7. Verify CurrentDate is recent (within 1 hour)
-        require(publicSignals[14] <= block.timestamp, "Proof date in future");
-        require(publicSignals[14] >= block.timestamp - 1 hours, "Proof too old");
+        require(publicSignals[INDEX_CURRENT_DATE] <= block.timestamp, "Proof date in future");
+        require(publicSignals[INDEX_CURRENT_DATE] >= block.timestamp - 1 hours, "Proof too old");
 
         // Register Nullifier to prevent Sybil attacks and document reuse by others
-        bytes32 nullifier = bytes32(publicSignals[26]);
+        bytes32 nullifier = bytes32(publicSignals[INDEX_NULLIFIER]);
         credentialRegistry.registerNullifier(nullifier, credentialHash, user);
         
         // Grant access
@@ -184,4 +194,3 @@ contract ProtocolAccessControl {
         emit AccessRevoked(user, msg.sender, block.timestamp);
     }
 }
-

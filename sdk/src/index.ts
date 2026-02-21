@@ -6,6 +6,7 @@
  */
 
 // Core exports
+export { NoahSDK, NoahError, NoahValidationError, NoahProverError } from './core/NoahSDK.js';
 export { ContractClient } from './core/ContractClient.js';
 export { APIClient } from './core/APIClient.js';
 export { WalletAdapter } from './core/WalletAdapter.js';
@@ -48,17 +49,6 @@ export type { OCROutput } from './utils/ocr.js';
 
 export { IdentityManager } from './utils/identity.js';
 export type { IdentityProfile } from './utils/identity.js';
-
-// React hooks (optional)
-export { useProtocol, useUser, useCredentials } from './hooks/index.js';
-export type {
-  UseProtocolOptions,
-  UseProtocolReturn,
-  UseUserOptions,
-  UseUserReturn,
-  UseCredentialsOptions,
-  UseCredentialsReturn,
-} from './hooks/index.js';
 
 // Type exports
 export type {

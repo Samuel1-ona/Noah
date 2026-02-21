@@ -58,7 +58,7 @@ export const Hero: React.FC<{ onLaunchDemo: () => void }> = ({ onLaunchDemo }) =
                     }}
                 >
                     Securely verify your identity using Zero-Knowledge Proofs.
-                    Verified once, reusable across every DeFi protocol on Avalanche.
+                    Verified once, reusable across Gaming, Consumer Apps, and DeFi on Avalanche.
                 </motion.p>
 
                 <motion.div
