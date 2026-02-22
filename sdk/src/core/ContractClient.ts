@@ -30,6 +30,7 @@ const CREDENTIAL_REGISTRY_ABI = [
   'function issuerNames(address) view returns (string)',
   'function credentialIssuers(bytes32) view returns (address)',
   'function nullifierOwners(bytes32) view returns (address)',
+  'function userToCredential(address) view returns (bytes32)',
   'function registerCredential(bytes32 credentialHash, address user)',
   'function registerNullifier(bytes32 nullifier, bytes32 credentialHash, address user)',
   'function revokeCredential(bytes32 credentialHash)',
@@ -68,12 +69,12 @@ export class ContractClient {
    */
   constructor(config?: ContractClientConfig) {
     this.contractAddresses = config?.contractAddresses || {
-      CredentialRegistry: '0x5d311f246ef87d24B045D961aA6da62a758514f7',
-      ZKVerifier: '0x96f43E12280676866bBe13E0120Bb5892fCbfE0b',
-      ProtocolAccessControl: '0xF599F186aC6fD2a9bECd9eDEE91fd58D3Dc3dB0A',
+      CredentialRegistry: '0xa4DfF80B4a1D748BF28BC4A271eD834689Ea3407',
+      ZKVerifier: '0xA4cD3b0Eb6E5Ab5d8CE4065BcCD70040ADAB1F00',
+      ProtocolAccessControl: '0xe336d36FacA76840407e6836d26119E1EcE0A2b4',
     };
 
-    this.rpcUrl = config?.rpcUrl || 'https://api.avax-test.network/ext/bc/C/rpc';
+    this.rpcUrl = config?.rpcUrl || 'http://127.0.0.1:9650/ext/bc/noah/rpc';
 
     if (config?.provider) {
       this.initialize(config.provider);
@@ -136,6 +137,15 @@ export class ContractClient {
       return owner !== ethers.ZeroAddress;
     } catch (error) {
       throw new Error(`Failed to check nullifier status: ${error}`);
+    }
+  }
+
+  async getCredentialByUser(userAddress: string): Promise<string> {
+    if (!this.credentialRegistry) this.initialize();
+    try {
+      return await this.credentialRegistry!.userToCredential(userAddress);
+    } catch (error) {
+      throw new Error(`Failed to get credential by user: ${error}`);
     }
   }
 

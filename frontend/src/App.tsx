@@ -5,10 +5,80 @@ import { IdentityVerification } from './components/Demo/IdentityVerification';
 import { SDKDocs } from './components/Docs/SDKDocs';
 import { PitchDeck } from './components/PitchDeck';
 import { VisualFlow } from './components/VisualFlow';
-import { Github, Twitter, Menu } from 'lucide-react';
+import { Github, Twitter, Menu, AlertCircle } from 'lucide-react';
+
+const NOAH_CHAIN_ID = '0x270f'; // 9999
+const NOAH_NETWORK = {
+  chainId: NOAH_CHAIN_ID,
+  chainName: 'Noah Local',
+  nativeCurrency: {
+    name: 'Noah Token',
+    symbol: 'TOK',
+    decimals: 18
+  },
+  rpcUrls: ['http://127.0.0.1:9650/ext/bc/noah/rpc'],
+  blockExplorerUrls: []
+};
 
 function App() {
   const [view, setView] = useState<'landing' | 'demo' | 'docs' | 'pitch'>('landing');
+  const [account, setAccount] = useState<string | null>(null);
+  const [chainId, setChainId] = useState<string | null>(null);
+
+  const switchNetwork = async () => {
+    if (!window.ethereum) return;
+    try {
+      await window.ethereum.request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: NOAH_CHAIN_ID }],
+      });
+    } catch (switchError: any) {
+      if (switchError.code === 4902) {
+        try {
+          await window.ethereum.request({
+            method: 'wallet_addEthereumChain',
+            params: [NOAH_NETWORK],
+          });
+        } catch (addError) {
+          console.error('Failed to add network:', addError);
+        }
+      }
+    }
+  };
+
+  const connectWallet = async () => {
+    if (window.ethereum) {
+      try {
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' }) as string[];
+        setAccount(accounts[0]);
+
+        const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
+        setChainId(currentChainId);
+
+        if (currentChainId !== NOAH_CHAIN_ID) {
+          await switchNetwork();
+          const newChainId = await window.ethereum.request({ method: 'eth_chainId' });
+          setChainId(newChainId);
+        }
+      } catch (err) {
+        console.error('Failed to connect wallet:', err);
+      }
+    } else {
+      alert('Please install MetaMask to use Noah on Avalanche.');
+    }
+  };
+
+  // Listen for network changes
+  useEffect(() => {
+    if (window.ethereum) {
+      window.ethereum.on('chainChanged', (newChainId: string) => {
+        setChainId(newChainId);
+      });
+      window.ethereum.on('accountsChanged', (accounts: string[]) => {
+        setAccount(accounts[0] || null);
+      });
+    }
+  }, []);
 
   // Sync scroll on view change
   useEffect(() => {
@@ -53,13 +123,44 @@ function App() {
               >
                 Back to Home
               </button>
-              <button className="btn btn-primary" style={{ padding: '0.5rem 1.25rem', fontSize: '0.875rem' }}>Connect Wallet</button>
+              {account ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  {chainId !== NOAH_CHAIN_ID && (
+                    <button onClick={switchNetwork} style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      background: 'rgba(239, 68, 68, 0.1)',
+                      color: '#EF4444',
+                      border: '1px solid rgba(239, 68, 68, 0.2)',
+                      padding: '0.4rem 0.75rem',
+                      borderRadius: '0.5rem',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      cursor: 'pointer'
+                    }}>
+                      <AlertCircle size={14} /> Switch to Noah Local
+                    </button>
+                  )}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem 1rem', background: 'rgba(255,255,255,0.05)', borderRadius: '0.5rem', border: '1px solid var(--border)' }}>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: chainId === NOAH_CHAIN_ID ? '#22C55E' : '#EF4444' }} />
+                    <span style={{ fontSize: '0.875rem', fontFamily: 'var(--font-mono)' }}>{account.slice(0, 6)}...{account.slice(-4)}</span>
+                  </div>
+                </div>
+              ) : (
+                <button onClick={connectWallet} className="btn btn-primary" style={{ padding: '0.5rem 1.25rem', fontSize: '0.875rem' }}>Connect Wallet</button>
+              )}
             </div>
           </div>
         </nav>
 
         <main style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
-          <IdentityVerification />
+          <IdentityVerification
+            account={account}
+            onConnect={connectWallet}
+            onSwitchNetwork={switchNetwork}
+            isWrongNetwork={chainId !== NOAH_CHAIN_ID && !!account}
+          />
         </main>
 
         <footer style={{ padding: '2rem 0', textAlign: 'center', borderTop: '1px solid var(--border)' }}>
@@ -160,7 +261,33 @@ function App() {
               </a>
               <Twitter size={20} style={{ color: 'var(--text-dim)', cursor: 'pointer' }} />
             </div>
-            <button className="btn btn-outline" style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}>Connect Wallet</button>
+            {account ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                {chainId !== NOAH_CHAIN_ID && (
+                  <button onClick={switchNetwork} style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    background: 'rgba(239, 68, 68, 0.1)',
+                    color: '#EF4444',
+                    border: '1px solid rgba(239, 68, 68, 0.2)',
+                    padding: '0.35rem 0.6rem',
+                    borderRadius: '0.5rem',
+                    fontSize: '0.7rem',
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}>
+                    <AlertCircle size={12} /> Wrong Network
+                  </button>
+                )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.4rem 1rem', background: 'rgba(255,255,255,0.05)', borderRadius: '0.5rem', border: '1px solid var(--border)' }}>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: chainId === NOAH_CHAIN_ID ? '#22C55E' : '#EF4444' }} />
+                  <span style={{ fontSize: '0.8125rem', fontFamily: 'var(--font-mono)' }}>{account.slice(0, 6)}...{account.slice(-4)}</span>
+                </div>
+              </div>
+            ) : (
+              <button onClick={connectWallet} className="btn btn-outline" style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}>Connect Wallet</button>
+            )}
           </div>
 
           <Menu className="mobile-menu" size={24} style={{ display: 'none' }} />

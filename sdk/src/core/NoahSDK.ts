@@ -1,5 +1,7 @@
 import { ContractClient } from './ContractClient.js';
 import { APIClient, type APIClientConfig } from './APIClient.js';
+import { OCRExtractor } from '../utils/ocr.js';
+import { parseTD3, type MRZData } from '../utils/mrz.js';
 import type {
     ContractClientConfig,
     Proof,
@@ -33,10 +35,34 @@ export class NoahProverError extends NoahError {
 export class NoahSDK {
     public contracts: ContractClient;
     public api: APIClient;
+    private ocrExtractor: OCRExtractor;
 
     constructor(config?: ContractClientConfig & APIClientConfig) {
         this.contracts = new ContractClient(config);
         this.api = new APIClient(config);
+        this.ocrExtractor = new OCRExtractor();
+    }
+
+    /**
+     * Extract identity data from a document image
+     * @param image - File or URL of the passport image
+     */
+    public async extractPassportData(image: File | string | Blob): Promise<MRZData> {
+        const { mrzLines } = await this.ocrExtractor.extractMRZ(image);
+
+        if (mrzLines.length < 2) {
+            throw new NoahValidationError('Could not detect MRZ lines in the image. Please ensure the bottom part of the passport is clearly visible.');
+        }
+
+        // We assume the last two lines are the TD3 MRZ lines
+        const line1 = mrzLines[mrzLines.length - 2];
+        const line2 = mrzLines[mrzLines.length - 1];
+
+        try {
+            return parseTD3(line1, line2);
+        } catch (error) {
+            throw new NoahValidationError(`Failed to parse MRZ: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
     }
 
     /**

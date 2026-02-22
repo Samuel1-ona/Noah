@@ -23,6 +23,15 @@ Onboard users securely. Meet strict KYC requirements while preserving your users
 
 ---
 
+## 🎨 Interactive Experience
+
+Noah isn't just a protocol; it's a complete platform with professional presentation tools:
+
+- **Professional Pitch Deck**: An interactive, slide-based presentation built directly into the UI to communicate Noah's value proposition to stakeholders.
+- **Visual Data Flow**: A high-fidelity animated diagram that visualizes the technical process of transforming sensitive MRZ data into private ZK-Proofs.
+
+---
+
 ## 🏗️ Architecture: Backend-less & Decentralized
 
 Unlike legacy systems, Noah operates without a central backend for proof generation. All cryptographic heavy lifting occurs on the user's device.

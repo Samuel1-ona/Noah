@@ -147,8 +147,24 @@ export const SDKDocs: React.FC = () => {
                         <CodeBlock
                             label="src/App.tsx"
                             id="init-code"
-                            code={`import { NoahSDK } from 'noah-avalanche-sdk';\n\nconst sdk = new NoahSDK({\n  provider: window.ethereum,\n  network: 'fuji' // or 'mainnet'\n});`}
+                            code={`import { NoahSDK } from 'noah-avalanche-sdk';\n\nconst sdk = new NoahSDK({\n  provider: window.ethereum,\n  rpcUrl: 'http://127.0.0.1:9650/ext/bc/noah/rpc' // Local L1\n});`}
                         />
+                        <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginTop: '2.5rem', marginBottom: '1rem' }}>Local Contract Addresses</h3>
+                        <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>Use these addresses for testing on your local Avalanche L1:</p>
+                        <div className="glass" style={{ padding: '1.5rem', fontFamily: 'var(--font-mono)', fontSize: '0.8125rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem' }}>
+                                <span style={{ color: 'var(--text-dim)' }}>CredentialRegistry</span>
+                                <span style={{ color: 'var(--primary)' }}>0x17aB05351fC94a1a67Bf3f56DdbB941aE6c63E25</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem' }}>
+                                <span style={{ color: 'var(--text-dim)' }}>ZKVerifier</span>
+                                <span style={{ color: 'var(--primary)' }}>0x52C84043CD9c865236f11d9Fc9F56aa003c1f922</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <span style={{ color: 'var(--text-dim)' }}>ProtocolAccessControl</span>
+                                <span style={{ color: 'var(--primary)' }}>0x5aa01B3b5877255cE50cc55e8986a7a5fe29C70e</span>
+                            </div>
+                        </div>
                     </motion.div>
                 );
             case 'proving':

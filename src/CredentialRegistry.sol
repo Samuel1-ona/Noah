@@ -38,6 +38,7 @@ contract CredentialRegistry is AccessControl {
     mapping(address => string) public issuerNames; // issuer => name
     
     mapping(bytes32 => address) public nullifierOwners; // nullifier => user address
+    mapping(address => bytes32) public userToCredential; // user => latest credentialHash
     
     modifier onlyIssuer() {
         require(trustedIssuers[msg.sender], "Not trusted issuer");
@@ -63,6 +64,7 @@ contract CredentialRegistry is AccessControl {
         
         credentials[credentialHash] = true;
         credentialIssuers[credentialHash] = msg.sender;
+        userToCredential[user] = credentialHash;
         
         emit CredentialIssued(user, credentialHash, msg.sender, block.timestamp);
     }

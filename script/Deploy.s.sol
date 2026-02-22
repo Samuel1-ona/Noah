@@ -8,22 +8,29 @@ import {ProtocolAccessControl} from "../src/ProtocolAccessControl.sol";
 
 contract DeployScript is Script {
     function run() external {
-        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
+        uint256 deployerPrivateKey;
+        if (vm.envExists("PK")) {
+            deployerPrivateKey = vm.envUint("PK");
+        } else {
+            deployerPrivateKey = vm.envUint("PRIVATE_KEY");
+        }
+        
         vm.startBroadcast(deployerPrivateKey);
         
-        console.log("Deploying ZK-KYC contracts...");
+        console.log("=== Noah Deployment on Avalanche ===");
         
-        // Deploy Credential Registry
-        console.log("Deploying CredentialRegistry...");
-        CredentialRegistry registry = new CredentialRegistry();
-        console.log("CredentialRegistry deployed at:", address(registry));
-        
-        // Deploy ZK Verifier
+        // 1. Deploy ZK Verifier
         console.log("Deploying ZKVerifier...");
         ZKVerifier verifier = new ZKVerifier();
         console.log("ZKVerifier deployed at:", address(verifier));
         
-        // Deploy Protocol Access Control
+        // 2. Deploy Credential Registry
+        console.log("Deploying CredentialRegistry...");
+        CredentialRegistry registry = new CredentialRegistry();
+        console.log("CredentialRegistry deployed at:", address(registry));
+        
+        // 3. Deploy Protocol Access Control
+        // Constructor: ZKVerifier address, CredentialRegistry address
         console.log("Deploying ProtocolAccessControl...");
         ProtocolAccessControl accessControl = new ProtocolAccessControl(
             address(verifier),
@@ -31,19 +38,18 @@ contract DeployScript is Script {
         );
         console.log("ProtocolAccessControl deployed at:", address(accessControl));
         
-        // Add a test issuer (optional)
-        if (vm.envOr("ADD_TEST_ISSUER", false)) {
-            address testIssuer = vm.envAddress("TEST_ISSUER_ADDRESS");
-            registry.addIssuer(testIssuer, "Test KYC Provider");
-            console.log("Test issuer added:", testIssuer);
-        }
+        // 4. Initialization (Add deployer as a test issuer for demo purposes)
+        address deployer = vm.addr(deployerPrivateKey);
+        registry.addIssuer(deployer, "Noah Genesis Issuer");
+        console.log("Registered deployer as Issuer:", deployer);
         
         vm.stopBroadcast();
         
         console.log("\n=== Deployment Summary ===");
-        console.log("CredentialRegistry:", address(registry));
-        console.log("ZKVerifier:", address(verifier));
-        console.log("ProtocolAccessControl:", address(accessControl));
+        console.log("Verifier: ", address(verifier));
+        console.log("Registry: ", address(registry));
+        console.log("AccessControl: ", address(accessControl));
+        console.log("==========================\n");
     }
 }
 
