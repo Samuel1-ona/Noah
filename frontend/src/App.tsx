@@ -4,6 +4,7 @@ import { ProcessFlow } from './components/ProcessFlow';
 import { IdentityVerification } from './components/Demo/IdentityVerification';
 import { SDKDocs } from './components/Docs/SDKDocs';
 import { PitchDeck } from './components/PitchDeck';
+import { VisualFlow } from './components/VisualFlow';
 import { Github, Twitter, Menu } from 'lucide-react';
 
 function App() {
@@ -168,6 +169,7 @@ function App() {
 
       <main>
         <Hero onLaunchDemo={() => setView('demo')} onOpenPitch={() => setView('pitch')} />
+        <VisualFlow />
         <ProcessFlow />
 
         {/* Mini Demo Section for Landing */}
