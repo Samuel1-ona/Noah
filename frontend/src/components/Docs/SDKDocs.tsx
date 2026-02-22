@@ -68,65 +68,38 @@ export const SDKDocs: React.FC = () => {
                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
                         <h1 style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '1.5rem' }}>Noah SDK Overview</h1>
                         <p style={{ fontSize: '1.125rem', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '2rem' }}>
-                            The Noah SDK is a client-side library that enables developers to integrate privacy-preserving identity verification into Gaming, Consumer Apps, and DeFi protocols on Avalanche.
-                            It handles complex cryptographic operations locally, ensuring user data never leaves their device.
+                            The Noah SDK is the gateway to privacy-preserving identity on Avalanche. It bridges human identity documents with the blockchain using Zero-Knowledge Proofs, allowing users to prove attributes (like age or citizenship) without revealing their personal data.
                         </p>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '3rem' }}>
                             <div className="glass" style={{ padding: '1.5rem' }}>
-                                <h3 style={{ marginBottom: '0.5rem' }}>Privacy First</h3>
-                                <p style={{ color: 'var(--text-dim)', fontSize: '0.9rem' }}>Zero-Knowledge Proofs ensure that only the result of the verification is shared, not the raw data.</p>
+                                <h4 style={{ color: 'var(--primary)', marginBottom: '0.5rem' }}>Client-Side Privacy</h4>
+                                <p style={{ color: 'var(--text-dim)', fontSize: '0.9rem' }}>Sensitive data like MRZ lines stay in the browser. ZK-Proofs are generated locally or in secure enclaves.</p>
                             </div>
                             <div className="glass" style={{ padding: '1.5rem' }}>
-                                <h3 style={{ marginBottom: '0.5rem' }}>Avalanche Native</h3>
-                                <p style={{ color: 'var(--text-dim)', fontSize: '0.9rem' }}>Optimized for the Avalanche C-Chain with minimal gas footprints and fast settlement.</p>
+                                <h4 style={{ color: 'var(--primary)', marginBottom: '0.5rem' }}>Avalanche L1 Ready</h4>
+                                <p style={{ color: 'var(--text-dim)', fontSize: '0.9rem' }}>Built-in support for multiple Avalanche subnets with automated network switching logic.</p>
                             </div>
                         </div>
-                    </motion.div>
-                );
-            case 'use-cases':
-                return (
-                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-                        <h1 style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '1.5rem' }}>Use Cases</h1>
-                        <p style={{ fontSize: '1.125rem', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '2.5rem' }}>
-                            Discover how Noah's privacy-preserving ZK-Identity can transform your application.
-                        </p>
 
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                            <div className="glass" style={{ padding: '2rem' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-                                    <div style={{ background: 'var(--primary-subtle)', padding: '0.75rem', borderRadius: '0.75rem' }}>
-                                        <Code2 className="text-primary" size={24} />
+                        <h3 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '1.5rem' }}>Full Integration Guide</h3>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            {[
+                                { step: "1", title: "Initialize SDK", desc: "Connect the SDK to your wallet provider and the local Avalanche RPC." },
+                                { step: "2", title: "Check Existing KYC", desc: "Immediately check if the connected address already has a registered credential to prevent redundant flows." },
+                                { step: "3", title: "OCR Extraction", desc: "Scan physical documents locally using the built-in MRZ extractor." },
+                                { step: "4", title: "Proof Submission", desc: "Trigger an on-chain registration that binds the identity to the user's wallet." },
+                                { step: "5", title: "Track Transactions", desc: "Monitor confirmations and provide direct links to the Avalanche explorer." }
+                            ].map((s) => (
+                                <div key={s.step} style={{ display: 'flex', gap: '1.5rem', padding: '1.5rem', background: 'rgba(255,255,255,0.02)', borderRadius: '1rem', border: '1px solid var(--border)' }}>
+                                    <div style={{ background: 'var(--primary)', color: 'white', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, flexShrink: 0 }}>
+                                        {s.step}
                                     </div>
-                                    <h3 style={{ fontSize: '1.5rem', fontWeight: 700 }}>Gaming & Web3 E-Sports</h3>
-                                </div>
-                                <p style={{ color: 'var(--text-muted)', lineHeight: 1.6 }}>
-                                    Keep your leaderboards fair. Verify that each player is a unique human behind the keyboard, putting an end to multi-accounting and bots.
-                                </p>
-                            </div>
-
-                            <div className="glass" style={{ padding: '2rem' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-                                    <div style={{ background: 'var(--primary-subtle)', padding: '0.75rem', borderRadius: '0.75rem' }}>
-                                        <Layers className="text-primary" size={24} />
+                                    <div>
+                                        <h4 style={{ fontWeight: 700, marginBottom: '0.25rem' }}>{s.title}</h4>
+                                        <p style={{ color: 'var(--text-dim)', fontSize: '0.875rem' }}>{s.desc}</p>
                                     </div>
-                                    <h3 style={{ fontSize: '1.5rem', fontWeight: 700 }}>Consumer Applications</h3>
                                 </div>
-                                <p style={{ color: 'var(--text-muted)', lineHeight: 1.6 }}>
-                                    Age-gate your content or services effortlessly. Prove your user is over 18 without asking them to upload a photo of their ID card to your servers.
-                                </p>
-                            </div>
-
-                            <div className="glass" style={{ padding: '2rem' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-                                    <div style={{ background: 'var(--primary-subtle)', padding: '0.75rem', borderRadius: '0.75rem' }}>
-                                        <Box className="text-primary" size={24} />
-                                    </div>
-                                    <h3 style={{ fontSize: '1.5rem', fontWeight: 700 }}>DeFi & RWA Platforms</h3>
-                                </div>
-                                <p style={{ color: 'var(--text-muted)', lineHeight: 1.6 }}>
-                                    Onboard users securely. Meet strict KYC requirements while preserving your users' on-chain privacy.
-                                </p>
-                            </div>
+                            ))}
                         </div>
                     </motion.div>
                 );
@@ -134,77 +107,116 @@ export const SDKDocs: React.FC = () => {
                 return (
                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
                         <h1 style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '1.5rem' }}>Installation</h1>
-                        <p style={{ marginBottom: '1.5rem' }}>Install the Noah SDK using your favorite package manager:</p>
-                        <CodeBlock code="npm install noah-avalanche-sdk" label="Terminal" id="install-npm" />
-                        <CodeBlock code="yarn add noah-avalanche-sdk" label="Terminal" id="install-yarn" />
+                        <p style={{ marginBottom: '1.5rem', color: 'var(--text-muted)' }}>The Noah SDK is available as a private NPM package. You can link it locally during development.</p>
+                        <CodeBlock code="npm install ../sdk" label="Terminal (Local Development)" id="install-local" />
+                        <div className="glass" style={{ padding: '1.5rem', marginTop: '2rem' }}>
+                            <h4 style={{ marginBottom: '0.75rem' }}>Dependencies</h4>
+                            <p style={{ fontSize: '0.875rem', color: 'var(--text-dim)', marginBottom: '1rem' }}>The SDK requires `ethers` (v6) and `tesseract.js` for OCR functionality.</p>
+                            <CodeBlock code='{\n  "dependencies": {\n    "noah-protocol-sdk": "file:../sdk",\n    "ethers": "^6.10.0"\n  }\n}' label="package.json" id="package-deps" />
+                        </div>
                     </motion.div>
                 );
             case 'initialization':
                 return (
                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
                         <h1 style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '1.5rem' }}>Initialization</h1>
-                        <p style={{ marginBottom: '1.5rem' }}>Initialize the SDK with an EIP-1193 provider (like MetaMask):</p>
+                        <p style={{ marginBottom: '1.5rem' }}>Create a single instance of the SDK to manage all contract interactions:</p>
                         <CodeBlock
-                            label="src/App.tsx"
+                            label="src/components/IdentityVerification.tsx"
                             id="init-code"
-                            code={`import { NoahSDK } from 'noah-avalanche-sdk';\n\nconst sdk = new NoahSDK({\n  provider: window.ethereum,\n  rpcUrl: 'http://127.0.0.1:9650/ext/bc/noah/rpc' // Local L1\n});`}
+                            code={`import { NoahSDK } from 'noah-protocol-sdk';\nimport { ethers } from 'ethers';\n\nconst sdk = new NoahSDK({\n  provider: new ethers.BrowserProvider(window.ethereum),\n  rpcUrl: 'http://127.0.0.1:9650/ext/bc/noah/rpc'\n});`}
                         />
-                        <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginTop: '2.5rem', marginBottom: '1rem' }}>Local Contract Addresses</h3>
-                        <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>Use these addresses for testing on your local Avalanche L1:</p>
-                        <div className="glass" style={{ padding: '1.5rem', fontFamily: 'var(--font-mono)', fontSize: '0.8125rem' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem' }}>
-                                <span style={{ color: 'var(--text-dim)' }}>CredentialRegistry</span>
-                                <span style={{ color: 'var(--primary)' }}>0x17aB05351fC94a1a67Bf3f56DdbB941aE6c63E25</span>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem' }}>
-                                <span style={{ color: 'var(--text-dim)' }}>ZKVerifier</span>
-                                <span style={{ color: 'var(--primary)' }}>0x52C84043CD9c865236f11d9Fc9F56aa003c1f922</span>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <span style={{ color: 'var(--text-dim)' }}>ProtocolAccessControl</span>
-                                <span style={{ color: 'var(--primary)' }}>0x5aa01B3b5877255cE50cc55e8986a7a5fe29C70e</span>
-                            </div>
+                        <div style={{ background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.2)', padding: '1.5rem', borderRadius: '1rem', marginTop: '2rem' }}>
+                            <h4 style={{ color: '#60A5FA', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                                <Terminal size={18} /> Pro Tip
+                            </h4>
+                            <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
+                                Always initialize the SDK inside a `useEffect` or a state management store to ensure the provider is ready before calling contract methods.
+                            </p>
                         </div>
                     </motion.div>
                 );
             case 'proving':
                 return (
                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-                        <h1 style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '1.5rem' }}>Proof Generation</h1>
-                        <p style={{ marginBottom: '1.5rem' }}>Extract passport data and generate a ZK proof locally:</p>
-                        <CodeBlock
-                            label="src/App.tsx"
-                            id="proving-code"
-                            code={`// 1. Extract data via OCR\nconst mrzData = await sdk.extractPassportData(imageFile);\n\n// 2. Generate age verification proof (> 18)\nconst proof = await sdk.proveAge(mrzData, 18);\n\nconsole.log("Proof Generated:", proof.signals);`}
-                        />
+                        <h1 style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '1.5rem' }}>Identity Services</h1>
+
+                        <div style={{ marginBottom: '3rem' }}>
+                            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1rem' }}>1. Local OCR Extraction</h3>
+                            <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>Extract passport MRZ data without sending images anywhere. All computation is local.</p>
+                            <CodeBlock
+                                label="Handle File"
+                                id="ocr-code"
+                                code={`const extractedData = await sdk.extractPassportData(imageFile);\nconsole.log(extractedData.passportNumber); // Returns parsed TD3 format`}
+                            />
+                        </div>
+
+                        <div>
+                            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1rem' }}>2. Identity Proof Generation</h3>
+                            <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>Generate a ZK Age proof (&gt; 18) that doesn't reveal the birth date.</p>
+                            <CodeBlock
+                                label="Generate Proof"
+                                id="proof-code"
+                                code={`// This triggers the ZK Prover engine\nconst proof = await sdk.api.generateAgeProof({\n  mrzData: extractedData,\n  minAge: 18,\n  recipientAddress: userWalletAddress\n});`}
+                            />
+                        </div>
                     </motion.div>
                 );
             case 'verifying':
                 return (
                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-                        <h1 style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '1.5rem' }}>On-Chain Verification</h1>
-                        <p style={{ marginBottom: '1.5rem' }}>Submit the proof to the `ProtocolAccessControl` contract on Avalanche:</p>
-                        <CodeBlock
-                            label="src/App.tsx"
-                            id="verify-code"
-                            code={`const protocolAddress = "0x...";\n\ntry {\n  const tx = await sdk.grantAccess(protocolAddress, proof);\n  await tx.wait();\n  console.log("Access Granted!");\n} catch (error) {\n  console.error("Verification failed", error);\n}`}
-                        />
+                        <h1 style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '1.5rem' }}>On-Chain Lifecycle</h1>
+
+                        <div style={{ marginBottom: '3rem' }}>
+                            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1rem' }}>Detection: `getCredentialByUser`</h3>
+                            <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>Call this when the wallet connects to see if they're already in the Noah Registry.</p>
+                            <CodeBlock
+                                label="Verification Check"
+                                id="check-code"
+                                code={`const hash = await sdk.contracts.getCredentialByUser(account);\nif (hash !== ethers.ZeroHash) {\n  console.log("Welcome back, verified user!");\n}`}
+                            />
+                        </div>
+
+                        <div>
+                            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1rem' }}>Registration: `registerCredential`</h3>
+                            <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>Submits the verification to the registry. Handles identity binding to the wallet.</p>
+                            <CodeBlock
+                                label="On-Chain Submission"
+                                id="submit-code"
+                                code={`try {\n  const res = await sdk.contracts.registerCredential(signer, hash, account);\n  console.log("Transaction:", res.transactionHash);\n} catch (e) {\n  if (e.message.includes("already exists")) handleReuse();\n}`}
+                            />
+                        </div>
                     </motion.div>
                 );
             case 'examples':
                 return (
                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-                        <h1 style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '1.5rem' }}>Integration Examples</h1>
-                        <div className="glass" style={{ padding: '2rem', marginBottom: '2rem' }}>
-                            <h3 style={{ color: 'var(--primary)', marginBottom: '1rem' }}>Age-Gated DeFi Lending</h3>
-                            <p style={{ marginBottom: '1.5rem' }}>Learn how to restrict your lending pool to verified users over 18 without revealing their identity.</p>
-                            <button className="btn btn-outline" style={{ fontSize: '0.875rem' }}>View GitHub Example</button>
-                        </div>
-                        <div className="glass" style={{ padding: '2rem' }}>
-                            <h3 style={{ color: 'var(--primary)', marginBottom: '1rem' }}>Sybil-Resistant Airdrop</h3>
-                            <p style={{ marginBottom: '1.5rem' }}>Ensure unique users participate in your airdrop using Noah's global nullifiers.</p>
-                            <button className="btn btn-outline" style={{ fontSize: '0.875rem' }}>View GitHub Example</button>
-                        </div>
+                        <h1 style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '1.5rem' }}>SDK Reference</h1>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '2rem' }}>
+                            <thead>
+                                <tr style={{ borderBottom: '2px solid var(--border)', textAlign: 'left' }}>
+                                    <th style={{ padding: '1rem', color: 'var(--text-dim)' }}>Method</th>
+                                    <th style={{ padding: '1rem', color: 'var(--text-dim)' }}>Namespace</th>
+                                    <th style={{ padding: '1rem', color: 'var(--text-dim)' }}>When to call</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {[
+                                    { name: "extractPassportData", space: "SDK", context: "User uploads passport image" },
+                                    { name: "getCredentialByUser", space: "Contracts", context: "Wallet connects (status check)" },
+                                    { name: "registerCredential", space: "Contracts", context: "Final verification submission" },
+                                    { name: "generateAgeProof", space: "API", context: "Generating ZK-KyC artifacts" },
+                                    { name: "registerNullifier", space: "Contracts", context: "Preventing Sybil attacks on protocols" },
+                                    { name: "isCredentialValid", space: "Contracts", context: "Deep validation check of a hash" }
+                                ].map((m, i) => (
+                                    <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
+                                        <td style={{ padding: '1rem', fontFamily: 'var(--font-mono)', color: 'var(--primary)', fontSize: '0.85rem' }}>{m.name}()</td>
+                                        <td style={{ padding: '1rem', fontSize: '0.85rem' }}>{m.space}</td>
+                                        <td style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--text-dim)' }}>{m.context}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     </motion.div>
                 );
         }

@@ -1,7 +1,7 @@
 {
-  "name": "noah-protocol-sdk",
+  "name": "noah-avalanche-sdk",
   "version": "0.1.2",
-  "description": "TypeScript/JavaScript SDK for NOAH Protocol - Privacy-preserving KYC for DeFi",
+  "description": "Securely verify your identity using Zero-Knowledge Proofs.",
   "main": "dist/index.js",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
