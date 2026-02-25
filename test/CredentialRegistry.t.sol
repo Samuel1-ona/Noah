@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 import {Test, console} from "forge-std/Test.sol";
 import {CredentialRegistry} from "../src/CredentialRegistry.sol";
+import {IAccessControl} from "@openzeppelin/contracts/access/IAccessControl.sol";
 
 contract CredentialRegistryTest is Test {
     CredentialRegistry public registry;
@@ -262,13 +263,26 @@ contract CredentialRegistryTest is Test {
     
     function test_Owner_OnlyOperations() public {
         address nonOwner = address(0x9);
+        bytes32 issuerManagerRole = registry.ISSUER_MANAGER_ROLE();
         
         vm.prank(nonOwner);
-        vm.expectRevert("Not owner");
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                nonOwner,
+                issuerManagerRole
+            )
+        );
         registry.addIssuer(address(0xA), "Test");
         
         vm.prank(nonOwner);
-        vm.expectRevert("Not owner");
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                nonOwner,
+                issuerManagerRole
+            )
+        );
         registry.removeIssuer(issuer);
     }
     

@@ -183,7 +183,7 @@ export const SDKDocs: React.FC = () => {
                             <CodeBlock
                                 label="src/hooks/useNoah.ts"
                                 id="init-code-v2"
-                                code={`import { NoahSDK } from 'noah-avalanche-sdk';\nimport { ethers } from 'ethers';\n\n// 1. Setup your provider (e.g., MetaMask)\nconst provider = new ethers.BrowserProvider(window.ethereum);\n\n// 2. Initialize the Noah SDK\nconst sdk = new NoahSDK({\n  provider: provider,\n  rpcUrl: 'http://127.0.0.1:9650/ext/bc/noah/rpc' // Local Avalanche RPC\n});\n\n// 3. (Optional) Explicitly initialize contracts\nawait sdk.init(provider);`}
+                                code={`import { NoahSDK } from 'noah-avalanche-sdk';\nimport { ethers } from 'ethers';\n\n// 1. Setup your provider (e.g., MetaMask)\nconst provider = new ethers.BrowserProvider(window.ethereum);\n\n// 2. Initialize the Noah SDK\nconst sdk = new NoahSDK({\n  provider: provider,\n  rpcUrl: 'https://avax-fuji.g.alchemy.com/v2/gu3D3rKyivv6bhmb3UbyUSYxThLz7C_c' // Avalanche Fuji RPC\n});\n\n// 3. (Optional) Explicitly initialize contracts\nawait sdk.init(provider);`}
                             />
                         </div>
 

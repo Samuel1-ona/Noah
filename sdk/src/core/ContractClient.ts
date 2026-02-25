@@ -69,12 +69,12 @@ export class ContractClient {
    */
   constructor(config?: ContractClientConfig) {
     this.contractAddresses = config?.contractAddresses || {
-      CredentialRegistry: '0xa4DfF80B4a1D748BF28BC4A271eD834689Ea3407',
-      ZKVerifier: '0xA4cD3b0Eb6E5Ab5d8CE4065BcCD70040ADAB1F00',
-      ProtocolAccessControl: '0xe336d36FacA76840407e6836d26119E1EcE0A2b4',
+      CredentialRegistry: '0x8E4B7e3f9F3C55DA50aB587168f1d8A011FC8e95',
+      ZKVerifier: '0x48392A1bE10b5687c06be11152675215dff14512',
+      ProtocolAccessControl: '0xb92f19431617F5B34bFDCb06E3a80533939DD71b',
     };
 
-    this.rpcUrl = config?.rpcUrl || 'http://127.0.0.1:9650/ext/bc/noah/rpc';
+    this.rpcUrl = config?.rpcUrl || 'https://avax-fuji.g.alchemy.com/v2/gu3D3rKyivv6bhmb3UbyUSYxThLz7C_c';
 
     if (config?.provider) {
       this.initialize(config.provider);

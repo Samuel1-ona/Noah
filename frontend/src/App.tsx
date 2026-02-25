@@ -7,17 +7,17 @@ import { PitchDeck } from './components/PitchDeck';
 import { VisualFlow } from './components/VisualFlow';
 import { Github, Twitter, Menu, AlertCircle } from 'lucide-react';
 
-const NOAH_CHAIN_ID = '0x270f'; // 9999
+const NOAH_CHAIN_ID = '0xa869'; // 43113 (Avalanche Fuji)
 const NOAH_NETWORK = {
   chainId: NOAH_CHAIN_ID,
-  chainName: 'Noah Local',
+  chainName: 'Avalanche Fuji',
   nativeCurrency: {
-    name: 'Noah Token',
-    symbol: 'TOK',
+    name: 'Avalanche',
+    symbol: 'AVAX',
     decimals: 18
   },
-  rpcUrls: ['http://127.0.0.1:9650/ext/bc/noah/rpc'],
-  blockExplorerUrls: []
+  rpcUrls: ['https://avax-fuji.g.alchemy.com/v2/gu3D3rKyivv6bhmb3UbyUSYxThLz7C_c'],
+  blockExplorerUrls: ['https://testnet.snowtrace.io/']
 };
 
 function App() {
@@ -139,7 +139,7 @@ function App() {
                       fontWeight: 600,
                       cursor: 'pointer'
                     }}>
-                      <AlertCircle size={14} /> Switch to Noah Local
+                      <AlertCircle size={14} /> Switch to Fuji Testnet
                     </button>
                   )}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem 1rem', background: 'rgba(255,255,255,0.05)', borderRadius: '0.5rem', border: '1px solid var(--border)' }}>
@@ -277,7 +277,7 @@ function App() {
                     fontWeight: 600,
                     cursor: 'pointer'
                   }}>
-                    <AlertCircle size={12} /> Wrong Network
+                    <AlertCircle size={12} /> Switch Network
                   </button>
                 )}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.4rem 1rem', background: 'rgba(255,255,255,0.05)', borderRadius: '0.5rem', border: '1px solid var(--border)' }}>

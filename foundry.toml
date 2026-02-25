@@ -9,7 +9,6 @@ via_ir = false
 evm_version = "cancun"
 
 [rpc_endpoints]
-local-noah = "http://localhost:9650/ext/bc/noah/rpc"
 mantle_sepolia = "${MANTLE_SEPOLIA_RPC_URL:-https://rpc.sepolia.mantle.xyz}"
 avalanche = "${AVALANCHE_RPC_URL:-https://api.avax.network/ext/bc/C/rpc}"
 fuji = "${FUJI_RPC_URL:-https://api.avax-test.network/ext/bc/C/rpc}"

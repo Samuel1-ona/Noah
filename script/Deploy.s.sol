@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 import {Script, console} from "forge-std/Script.sol";
 import {CredentialRegistry} from "../src/CredentialRegistry.sol";
+import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {ZKVerifier} from "../src/ZKVerifier.sol";
 import {ProtocolAccessControl} from "../src/ProtocolAccessControl.sol";
 
@@ -42,6 +43,13 @@ contract DeployScript is Script {
         address deployer = vm.addr(deployerPrivateKey);
         registry.addIssuer(deployer, "Noah Genesis Issuer");
         console.log("Registered deployer as Issuer:", deployer);
+
+        // 5. Grant roles to the provided owner address
+        address ownerAddress = 0xd5881AA749eEFd3Cb08d10f051aC776d664d0663;
+        console.log("Setting owner address:", ownerAddress);
+        registry.grantRole(registry.DEFAULT_ADMIN_ROLE(), ownerAddress);
+        registry.grantRole(registry.ISSUER_MANAGER_ROLE(), ownerAddress);
+        console.log("Granted Admin and Issuer Manager roles to owner");
         
         vm.stopBroadcast();
         

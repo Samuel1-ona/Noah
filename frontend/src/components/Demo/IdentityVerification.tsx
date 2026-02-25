@@ -39,7 +39,7 @@ export const IdentityVerification: React.FC<IdentityVerificationProps> = ({
         if (window.ethereum) {
             const noahSdk = new NoahSDK({
                 provider: new ethers.BrowserProvider(window.ethereum as any),
-                rpcUrl: 'http://127.0.0.1:9650/ext/bc/noah/rpc'
+                rpcUrl: 'https://avax-fuji.g.alchemy.com/v2/gu3D3rKyivv6bhmb3UbyUSYxThLz7C_c'
             });
             setSdk(noahSdk);
         }
@@ -308,7 +308,7 @@ export const IdentityVerification: React.FC<IdentityVerificationProps> = ({
                                         <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>Wrong Network Connected</span>
                                     </div>
                                     <button onClick={onSwitchNetwork} className="btn btn-primary" style={{ width: '100%', background: '#EF4444', border: 'none' }}>
-                                        Switch to Noah Local
+                                        Switch to Fuji Testnet
                                     </button>
                                 </div>
                             ) : (
@@ -356,7 +356,7 @@ export const IdentityVerification: React.FC<IdentityVerificationProps> = ({
                                     </span>
                                 </div>
                                 <a
-                                    href={`http://127.0.0.1:9650/ext/bc/noah/rpc`}
+                                    href={`https://testnet.snowtrace.io/`}
                                     target="_blank"
                                     rel="noreferrer"
                                     style={{ display: 'block', marginTop: '0.75rem', fontSize: '0.75rem', color: 'var(--primary)', textDecoration: 'none', fontWeight: 600 }}
