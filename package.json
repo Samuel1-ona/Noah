@@ -3,10 +3,7 @@
   "version": "1.0.0",
   "description": "NOAH - Privacy-Preserving KYC with Selective Disclosure for Avalanche",
   "main": "index.js",
-  "workspaces": [
-    "frontend",
-    "sdk"
-  ],
+
   "scripts": {
     "compile": "forge build",
     "test": "forge test",
