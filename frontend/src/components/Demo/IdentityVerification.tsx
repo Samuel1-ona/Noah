@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, FileText, Cpu, Send, CheckCircle2, Loader2, Wallet, AlertCircle } from 'lucide-react';
-import { NoahSDK } from 'noah-protocol-sdk';
+import { NoahSDK } from 'noah-avalanche-sdk';
 import { ethers } from 'ethers';
 
 declare global {
