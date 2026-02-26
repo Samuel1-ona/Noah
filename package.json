@@ -1,14 +1,19 @@
 {
-  "name": "noah",
+  "name": "noah-protocol",
   "version": "1.0.0",
-  "description": "NOAH - Privacy-Preserving KYC with Selective Disclosure for DeFi",
+  "description": "NOAH - Privacy-Preserving KYC with Selective Disclosure for Avalanche",
   "main": "index.js",
+  "workspaces": [
+    "frontend",
+    "sdk"
+  ],
   "scripts": {
     "compile": "forge build",
     "test": "forge test",
     "test:verbose": "forge test -vvv",
-    "deploy:mantle": "forge script script/Deploy.s.sol:DeployScript --rpc-url mantle --broadcast --verify",
-    "deploy:mantle-testnet": "forge script script/Deploy.s.sol:DeployScript --rpc-url mantle_testnet --broadcast --verify"
+    "deploy:avalanche": "forge script script/Deploy.s.sol:DeployScript --rpc-url avalanche --broadcast --verify",
+    "deploy:fuji": "forge script script/Deploy.s.sol:DeployScript --rpc-url avalanche_testnet --broadcast --verify",
+    "build": "npm run build -w sdk && npm run build -w frontend"
   },
   "keywords": [
     "noah",
@@ -16,7 +21,7 @@
     "zero-knowledge",
     "kyc",
     "privacy",
-    "mantle",
+    "avalanche",
     "defi"
   ],
   "author": "",

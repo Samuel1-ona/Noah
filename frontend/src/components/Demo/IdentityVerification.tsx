@@ -4,6 +4,8 @@ import { Upload, FileText, Cpu, Send, CheckCircle2, Loader2, Wallet, AlertCircle
 import { NoahSDK } from 'noah-avalanche-sdk';
 import { ethers } from 'ethers';
 
+const ISSUER_PRIVATE_KEY = import.meta.env.VITE_ISSUER_PRIVATE_KEY;
+
 declare global {
     interface Window {
         ethereum?: any;
@@ -120,17 +122,23 @@ export const IdentityVerification: React.FC<IdentityVerificationProps> = ({
             } else if (currentStep === 'submit') {
                 if (!account || !sdk) throw new Error("Wallet not connected");
 
-                // Get signer and ensure correct network
-                const provider = new ethers.BrowserProvider(window.ethereum as any);
-                const signer = await provider.getSigner();
+                // Derive the Issuer Address and Signer for Authorization
+                if (!ISSUER_PRIVATE_KEY) throw new Error("Issuer Private Key not found in Environment");
 
                 // Real contract interaction: Register Credential
-                // We'll generate a consistent hash from the passport number for the demo
-                const credentialHash = ethers.id(extractedData?.passportNumber || "DEMO_PASSPORT_2026");
+                const provider = new ethers.BrowserProvider(window.ethereum as any);
+                const issuerSigner = new ethers.Wallet(ISSUER_PRIVATE_KEY, provider);
+                const issuerAddress = await issuerSigner.getAddress();
 
-                console.log("Submitting transaction to register credential...");
+                // Generate credential hash that "authorizes" the specific issuer for this identity
+                // We combine the passport number with the issuer's address
+                const credentialHashSource = `${extractedData?.passportNumber || "DEMO_PASSPORT_2026"}-${issuerAddress}`;
+                const credentialHash = ethers.id(credentialHashSource);
+
+                console.log("Submitting transaction authorized for issuer:", issuerAddress);
                 try {
-                    const result = await sdk.contracts.registerCredential(signer, credentialHash, account);
+                    // Registration MUST be signed by a trusted issuer
+                    const result = await sdk.contracts.registerCredential(issuerSigner, credentialHash, account);
                     setTxHash(result.transactionHash);
 
                     setIsProcessing(false);
@@ -146,7 +154,7 @@ export const IdentityVerification: React.FC<IdentityVerificationProps> = ({
                     }
 
                     if (txErr.message.includes("Not trusted issuer")) {
-                        throw new Error("Your wallet is not authorized as a Noah Issuer. Visit the 'Docs' to learn how to grant Issuer roles to your test wallet.");
+                        throw new Error("Your configured Issuer Key is not authorized on-chain. Visit the 'Docs' to learn how to grant Issuer roles to your test wallet.");
                     }
                     throw txErr;
                 }
