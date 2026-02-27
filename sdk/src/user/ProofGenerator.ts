@@ -88,6 +88,16 @@ export class ProofGenerator {
     // Simulate some work
     await new Promise(resolve => setTimeout(resolve, 1000));
 
+    // Simplified deterministic nullifier for simulation
+    const passportNum = input.passportNumber || '0';
+    let hash = 0;
+    for (let i = 0; i < passportNum.length; i++) {
+      const char = passportNum.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash;
+    }
+    const deterministicNullifier = "0x" + Math.abs(hash).toString(16).padStart(64, '0');
+
     return {
       proof: {
         a: ["0", "0"],
@@ -95,7 +105,7 @@ export class ProofGenerator {
         c: ["0", "0"]
       } as ZKProof,
       publicSignals: [], // This would be populated by the WASM
-      nullifier: "0x" + Math.random().toString(16).substring(2, 66),
+      nullifier: deterministicNullifier,
       packedFlags: 15, // All checks pass
       success: true
     };

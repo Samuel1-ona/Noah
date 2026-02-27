@@ -165,7 +165,7 @@ func wrapVerifier(verifierCode string, ccs constraint.ConstraintSystem) string {
      * @param publicSignals The public signals array (28 elements)
      * @dev Public signals order: 
      *      [0]=minAge, [1-10]=allowedJurisdictions, [11]=requireAccredited, 
-     *      [12]=credentialHashPublic, [13]=appID, [14]=currentDate, [15-24]=sanctionedCountries,
+     *      [12]=credentialHashPublic, [13]=recipientAddress, [14]=currentDate, [15-24]=sanctionedCountries,
      *      [25]=isValid, [26]=nullifier, [27]=packedFlags
      * @return isValid True if the proof is valid
      */
@@ -334,13 +334,13 @@ func testCircuit(ccs constraint.ConstraintSystem, pk groth16.ProvingKey, vk grot
 		},
 		RequireAccredited:    1,
 		CredentialHashPublic: 9876543210,
-		AppID:                55555,
+		RecipientAddress:     55555,
 		CurrentDate:          1740052800, // 2025-02-20
 		SanctionedCountries:  [10]frontend.Variable{0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 
 		// Output fields
 		IsValid:     1,
-		Nullifier:   1357924680 + 55555,
+		Nullifier:   1357924680,
 		PackedFlags: 15, // 1 + 2 + 4 + 8 = 15
 	}
 

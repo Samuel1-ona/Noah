@@ -40,8 +40,7 @@ export const IdentityVerification: React.FC<IdentityVerificationProps> = ({
     useEffect(() => {
         if (window.ethereum) {
             const noahSdk = new NoahSDK({
-                provider: new ethers.BrowserProvider(window.ethereum as any),
-                rpcUrl: 'https://avax-fuji.g.alchemy.com/v2/gu3D3rKyivv6bhmb3UbyUSYxThLz7C_c'
+                provider: new ethers.BrowserProvider(window.ethereum as any)
             });
             setSdk(noahSdk);
         }

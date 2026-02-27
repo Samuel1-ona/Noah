@@ -17,7 +17,8 @@ test-verbose: ## Run tests with verbose output
 
 circuit: ## Compile ZK circuit and generate verifier (Go/gnark)
 	@echo "🔨 Compiling ZK-KYC circuit with gnark..."
-	@cd cmd/generate-verifier && go run main.go
+	@go run cmd/generate-verifier/main.go
+
 
 deploy-mantle: ## Deploy to Mantle mainnet
 	forge script script/Deploy.s.sol:DeployScript --rpc-url mantle --broadcast --verify

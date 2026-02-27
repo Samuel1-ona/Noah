@@ -7,6 +7,11 @@ optimizer = true
 optimizer_runs = 200
 via_ir = false
 evm_version = "cancun"
+remappings = [
+    "@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/",
+    "forge-std/=lib/forge-std/src/",
+]
+
 
 [rpc_endpoints]
 mantle_sepolia = "${MANTLE_SEPOLIA_RPC_URL:-https://rpc.sepolia.mantle.xyz}"

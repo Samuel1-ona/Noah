@@ -69,9 +69,9 @@ export class ContractClient {
    */
   constructor(config?: ContractClientConfig) {
     this.contractAddresses = config?.contractAddresses || {
-      CredentialRegistry: '0x8E4B7e3f9F3C55DA50aB587168f1d8A011FC8e95',
-      ZKVerifier: '0x48392A1bE10b5687c06be11152675215dff14512',
-      ProtocolAccessControl: '0xb92f19431617F5B34bFDCb06E3a80533939DD71b',
+      CredentialRegistry: '0x66778ebA2d9cc857ea39fbb8e2e54238918B221C',
+      ZKVerifier: '0xAAafC153AcB233C1dc29Cb4Cb7B0dB9145dF3541',
+      ProtocolAccessControl: '0x54bCF024486e63777FcC426647E4eeEd3b963260',
     };
 
     this.rpcUrl = config?.rpcUrl || 'https://avax-fuji.g.alchemy.com/v2/gu3D3rKyivv6bhmb3UbyUSYxThLz7C_c';

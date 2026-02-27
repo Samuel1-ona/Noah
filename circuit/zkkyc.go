@@ -2,6 +2,7 @@ package circuit
 
 import (
 	"github.com/consensys/gnark/frontend"
+	"github.com/consensys/gnark/std/hash/mimc"
 )
 
 // ZKKYC represents the ZK-KYC circuit for selective disclosure
@@ -54,10 +55,12 @@ func (circuit *ZKKYC) Define(api frontend.API) error {
 	// 6. Accreditation check
 	accreditationValid := circuit.checkAccreditation(api, circuit.ActualAccredited, circuit.RequireAccredited)
 
-	// 7. Nullifier Generation: Hash(PassportNumber)
-	// For reusability, we use a global nullifier that is not bound to a specific AppID.
-	// In production, use Poseidon or MiMC.
-	circuit.Nullifier = api.Mul(circuit.PassportNumber, 1) // Global nullifier
+	// 7. Nullifier Generation: MiMCHash(PassportNumber)
+	// For production-grade Sybil resistance and privacy, we use MiMC.
+	// MiMC is a SNARK-friendly hash function that is efficient in ZK circuits.
+	h, _ := mimc.NewMiMC(api)
+	h.Write(circuit.PassportNumber)
+	circuit.Nullifier = h.Sum()
 
 	// 8. Public Input Packing: over18 (bit 0), over21 (bit 1), validExpiry (bit 2), notSanctioned (bit 3)
 	// packed = isOver18 + 2*isOver21 + 4*expiryValid + 8*isNotSanctioned

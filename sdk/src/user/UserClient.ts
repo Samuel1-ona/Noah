@@ -244,10 +244,21 @@ export class UserClient {
   private async generateMockProof(credential: Credential, requirements: Requirements): Promise<ProofResult> {
     console.log('[MockMode] Generating proof for', credential.credentialHash);
     await new Promise(resolve => setTimeout(resolve, 800));
+
+    // Simple deterministic hash for mock nullifier based on passport number
+    const passportNum = credential.passportNumber || 'test-passport';
+    let hash = 0;
+    for (let i = 0; i < passportNum.length; i++) {
+      const char = passportNum.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    const deterministicNullifier = '0x' + Math.abs(hash).toString(16).padStart(64, '0');
+
     return {
       proof: { a: ["0", "0"], b: [["0", "0"], ["0", "0"]], c: ["0", "0"] } as ZKProof,
       publicSignals: new Array(28).fill("0"),
-      nullifier: "0xmocknullifier" + Math.random().toString(16).substring(2, 8),
+      nullifier: deterministicNullifier,
       packedFlags: 15,
       credentialHash: credential.credentialHash,
       success: true

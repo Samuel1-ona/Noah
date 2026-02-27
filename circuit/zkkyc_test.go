@@ -220,7 +220,7 @@ func TestZKKYC_ExpiryCheck_Boundary(t *testing.T) {
 		ActualAge: 25, MinAge: 18, ActualJurisdiction: 1,
 		AllowedJurisdictions: [10]frontend.Variable{1, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 		ActualAccredited:     0, RequireAccredited: 0, CredentialHash: 1, CredentialHashPublic: 1,
-		PassportNumber: 1, AppID: 1, Nullifier: 2,
+		PassportNumber: 1, RecipientAddress: 1, Nullifier: 1,
 		SanctionedCountries: [10]frontend.Variable{0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 		PackedFlags:         15,
 	}
