@@ -90,6 +90,14 @@ Noah uses **Selective Disclosure**—the protocol only proves the *requirement* 
 
 ---
 
+## 🌐 Deployed Contracts (Fuji Testnet)
+
+- **ZKVerifier**: [0xAAafC153AcB233C1dc29Cb4Cb7B0dB9145dF3541](https://testnet.snowscan.xyz/address/0xAAafC153AcB233C1dc29Cb4Cb7B0dB9145dF3541)
+- **CredentialRegistry**: [0x66778ebA2d9cc857ea39fbb8e2e54238918B221C](https://testnet.snowscan.xyz/address/0x66778ebA2d9cc857ea39fbb8e2e54238918B221C)
+- **ProtocolAccessControl**: [0x54bCF024486e63777FcC426647E4eeEd3b963260](https://testnet.snowscan.xyz/address/0x54bCF024486e63777FcC426647E4eeEd3b963260)
+
+---
+
 ## 💻 Getting Started
 
 ### Installation
