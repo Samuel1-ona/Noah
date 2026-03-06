@@ -57,17 +57,21 @@ export class OCRExtractor {
      * Filter and clean MRZ lines from raw OCR text
      */
     private filterMRZLines(text: string): string[] {
-        const lines = text.split('\n').map(l => l.trim().replace(/\s/g, ''));
+        let lines = text.split('\n').map(l => l.trim().replace(/\s/g, ''));
+
+        // Clean up common chevron OCR mistakes at the end of lines
+        lines = lines.map(line => line.replace(/[Kk]+$/, match => '<'.repeat(match.length)));
+        lines = lines.map(line => line.replace(/[>]+/g, match => '<'.repeat(match.length)));
 
         // TD3 MRZ (Passport) is 2 lines of 44 characters
         // TD1 (ID Card) is 3 lines of 30 characters
-        // We look for lines containing multiple '<' characters
+        // We look for lines containing multiple '<' characters or that are very long
         return lines.filter(line => {
             const charCount = line.length;
             const chevronCount = (line.match(/</g) || []).length;
 
             // Heuristic: MRZ lines are long and have many chevrons
-            return (charCount >= 30 && chevronCount >= 2);
+            return (charCount >= 34 || (charCount >= 30 && chevronCount >= 2));
         });
     }
 

@@ -10,7 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "noah-avalanche-sdk": "0.1.5",
+    "noah-avalanche-sdk": "0.1.6",
     "ethers": "^6.10.0",
     "framer-motion": "^12.34.3",
     "lucide-react": "^0.575.0",
