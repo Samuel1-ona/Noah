@@ -32,27 +32,42 @@ Noah isn't just a protocol; it's a complete platform with professional presentat
 
 ---
 
-## 🏗️ Architecture: Backend-less & Decentralized
+## 🏗️ Technical Structure & Architecture
 
-Unlike legacy systems, Noah operates without a central backend for proof generation. All cryptographic heavy lifting occurs on the user's device.
+The Noah Protocol is structured into into three integrated layers that prioritize user privacy and on-chain security:
 
-### High-Level Flow
+### 1. Application Layer (Noah SDK)
+Developers integrate the Noah SDK into their decentralized applications (dApps). The SDK provides a seamless UI component that handles user interaction without requiring complex back-end configuration.
+
+### 2. Verification Layer (Local WASM)
+All sensitive processing occurs locally on the user's device. The SDK's engine performs OCR to extract document data, which is then passed to the Gnark-WASM Prover. The prover generates a Zero-Knowledge Proof (ZKP) that confirms identity attributes without exposing any Personally Identifiable Information (PII).
+
+### 3. On-chain Layer (Avalanche)
+The generated ZK Proof is submitted to the **CredentialRegistry** on the Avalanche network. The registry uses the **ZKVerifier** to cryptographically validate the proof. Once verified, a unique identity nullifier is permanently bound to the user's wallet address, enabling portable, reusable identity across the ecosystem.
 
 ```mermaid
-graph LR
-    subgraph Client["User Device (Noah SDK)"]
-        Passport[Passport MRZ] --> OCR[Automated OCR]
-        OCR --> WASM[Gnark WASM Prover]
-        WASM --> Proof[ZK Proof]
+graph TD
+    subgraph AppLayer ["1. Application Layer (Noah SDK)"]
+        SDK["Noah SDK integration"] --> UI["Seamless UI Components"]
     end
 
-    subgraph Avalanche["Avalanche C-Chain"]
-        Proof --> Registry[CredentialRegistry]
-        Registry --> Access[ProtocolAccessControl]
-        Access --> Verifier[ZKVerifier]
+    subgraph VerifLayer ["2. Verification Layer (Local WASM)"]
+        OCR["Local OCR Engine"] --> Prover["Gnark-WASM Prover"]
+        Prover --> Proof["ZK Proof (No PII)"]
     end
 
-    Access --> |Grant Access| DeFi[DeFi Protocol]
+    subgraph ChainLayer ["3. On-chain Layer (Avalanche)"]
+        Registry["CredentialRegistry"] --> Verifier["ZKVerifier"]
+        Verifier --> Nullifier["Identity Nullifier"]
+        Nullifier --- Wallet["User's Wallet Address"]
+    end
+
+    AppLayer --> VerifLayer
+    VerifLayer --> ChainLayer
+    
+    style AppLayer fill:#6b21a8,stroke:#a855f7,stroke-width:2px,color:#fff
+    style VerifLayer fill:#1e3a8a,stroke:#3b82f6,stroke-width:2px,color:#fff
+    style ChainLayer fill:#064e3b,stroke:#10b981,stroke-width:2px,color:#fff
 ```
 
 ---
