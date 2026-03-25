@@ -54,6 +54,24 @@ export class OCRExtractor {
     }
 
     /**
+     * Extract MRZ data from a dual-sided document (front and back images)
+     * @param frontImage - URL, File, or Blob of the front of the document
+     * @param backImage - URL, File, or Blob of the back of the document
+     * @returns Combined extracted text and MRZ lines
+     */
+    async extractDualMRZ(frontImage: string | File | Blob, backImage: string | File | Blob): Promise<OCROutput> {
+        // Run OCR on both images sequentially
+        const frontResult = await this.extractMRZ(frontImage);
+        const backResult = await this.extractMRZ(backImage);
+        
+        return {
+            rawText: frontResult.rawText + '\n' + backResult.rawText,
+            mrzLines: [...frontResult.mrzLines, ...backResult.mrzLines],
+            confidence: (frontResult.confidence + backResult.confidence) / 2
+        };
+    }
+
+    /**
      * Filter and clean MRZ lines from raw OCR text
      */
     private filterMRZLines(text: string): string[] {

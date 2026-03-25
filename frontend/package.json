@@ -10,10 +10,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "noah-avalanche-sdk": "0.1.6",
     "ethers": "^6.10.0",
     "framer-motion": "^12.34.3",
     "lucide-react": "^0.575.0",
+    "noah-avalanche-sdk": "file:../sdk",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },

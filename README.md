@@ -126,13 +126,21 @@ import { NoahSDK } from 'noah-avalanche-sdk';
 
 const sdk = new NoahSDK({ provider: window.ethereum });
 
-// 1. Scan Passport
-const mrzData = await sdk.extractPassportData(image);
+// 1. Scan any ICAO 9303 Document (Passport or ID Card)
+const icaoData = await sdk.extractICAOData(image); 
 
-// 2. Generate Proof (User-bound to wallet)
-const proof = await sdk.proveAge(mrzData, 18);
+// 2. Scan Aadhaar (India) or NIMC (Nigeria)
+const aadhaarData = await sdk.extractAadhaarData(image);
 
-// 3. Verify on Avalanche
+// 3. Generate Proof (User-bound to wallet)
+const proof = await sdk.generateProof({
+    credentialType: 'ICAO_ID_CARD',
+    mrzData: icaoData.raw,
+    minAge: 18,
+    recipientAddress: userAddress
+});
+
+// 4. Verify on Avalanche
 await sdk.grantAccess(protocolAddress, proof);
 ```
 

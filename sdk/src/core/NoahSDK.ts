@@ -1,7 +1,7 @@
 import { ContractClient } from './ContractClient.js';
 import { APIClient, type APIClientConfig } from './APIClient.js';
+import { ICAOParser, type MRZResult } from '../utils/icao.js';
 import { OCRExtractor } from '../utils/ocr.js';
-import { parseTD3, type MRZData } from '../utils/mrz.js';
 import type {
     ContractClientConfig,
     Proof,
@@ -29,9 +29,6 @@ export class NoahProverError extends NoahError {
     }
 }
 
-/**
- * NoahSDK - Main entry point for the Noah Protocol
- */
 export class NoahSDK {
     public contracts: ContractClient;
     public api: APIClient;
@@ -44,31 +41,61 @@ export class NoahSDK {
     }
 
     /**
-     * Extract identity data from a document image
-     * @param image - File or URL of the passport image
+     * Extract identity data from any ICAO 9303 document (Passport, ID Card)
      */
-    public async extractPassportData(image: File | string | Blob): Promise<MRZData> {
+    public async extractICAOData(image: File | string | Blob): Promise<MRZResult> {
         const { mrzLines } = await this.ocrExtractor.extractMRZ(image);
 
         if (mrzLines.length < 2) {
-            throw new NoahValidationError('Could not detect MRZ lines in the image. Please ensure the bottom part of the passport is clearly visible.');
+            throw new NoahValidationError('Could not detect MRZ lines in the image.');
         }
 
-        // We assume the last two lines are the TD3 MRZ lines
-        const line1 = mrzLines[mrzLines.length - 2];
-        const line2 = mrzLines[mrzLines.length - 1];
+        const fullMRZ = mrzLines.join('');
 
         try {
-            return parseTD3(line1, line2);
+            return ICAOParser.parse(fullMRZ);
         } catch (error) {
             throw new NoahValidationError(`Failed to parse MRZ: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
     }
 
     /**
+     * Alias for extractICAOData used by frontend demos
+     */
+    public async extractPassportData(image: File | string | Blob): Promise<MRZResult> {
+        return this.extractICAOData(image);
+    }
+
+    /**
+     * Extract identity data from a dual-sided document (National ID, Driver's License)
+     */
+    public async extractDualSideData(frontImage: File | string | Blob, backImage: File | string | Blob): Promise<MRZResult> {
+        const { mrzLines } = await this.ocrExtractor.extractDualMRZ(frontImage, backImage);
+
+        if (mrzLines.length < 2) {
+            throw new NoahValidationError('Could not detect MRZ lines in the uploaded images. Please ensure the back of the ID is clearly visible.');
+        }
+
+        const fullMRZ = mrzLines.join('');
+
+        try {
+            return ICAOParser.parse(fullMRZ);
+        } catch (error) {
+            throw new NoahValidationError(`Failed to parse MRZ from ID card: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+    }
+
+    /**
+     * Extract data from an Aadhaar QR code
+     */
+    public async extractAadhaarData(image: File | string | Blob): Promise<unknown> {
+        throw new NoahError('Aadhaar extraction is not yet implemented.', 'NOT_IMPLEMENTED');
+    }
+
+    /**
      * Initialize the SDK with a provider
      */
-    public init(provider: any): void {
+    public init(provider: unknown): void {
         this.contracts.initialize(provider);
     }
 
@@ -78,7 +105,7 @@ export class NoahSDK {
     public async proveAndGrant(
         signer: Signer,
         protocolAddress: string,
-        mrzData: any,
+        mrzData: MRZResult,
         targetAge: number
     ): Promise<TransactionResult> {
         try {

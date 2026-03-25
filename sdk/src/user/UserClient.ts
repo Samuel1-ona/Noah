@@ -141,6 +141,7 @@ export class UserClient {
       const passportNum = BigInt('0x' + Buffer.from(credential.passportNumber || '0').toString('hex'));
 
       const input: ProverInput = {
+        credentialType: 'ICAO_PASSPORT', // Defaulting to passport for this proof 
         actualAge: credential.age,
         actualJurisdiction: Number(jurisdictionValue),
         actualAccredited: credential.accredited,

@@ -9,20 +9,34 @@
 
 import type { ZKProof } from '../utils/types';
 
+export type CredentialType = 'ICAO_PASSPORT' | 'ICAO_ID_CARD' | 'AADHAAR' | 'NIMC_NIGERIA';
+
 export interface ProverInput {
+  credentialType: CredentialType;
+  // Common fields
   actualAge: number;
-  actualJurisdiction: number;
-  actualAccredited: number;
-  credentialHash: string;
-  passportNumber: string;
-  expiryDate: number;
   minAge: number;
   recipientAddress: string;
   currentDate: number;
+
+  // New ZKKYC fields
+  actualJurisdiction?: number;
+  actualAccredited?: number;
+  credentialHash?: string;
+  passportNumber?: string;
+  expiryDate?: number;
+  requireAccredited?: number;
+  credentialHashPublic?: string;
+  
+  // Doc-specific fields
+  mrzData?: string;
+  qrData?: string;
+  signature?: string;
+  publicKey?: string;
+  
+  // Protocol requirements
   allowedJurisdictions: number[];
   sanctionedCountries: number[];
-  requireAccredited: number;
-  credentialHashPublic: string;
 }
 
 export interface ProofGenerationResult {
@@ -37,14 +51,15 @@ export class ProofGenerator {
   private wasmLoaded: boolean = false;
   private wasmBinary: ArrayBuffer | null = null;
 
-  constructor() { }
+  constructor(private wasmUrl: string = '/noah_prover.wasm') { }
 
   /**
    * Load the ZK prover artifacts
-   * @param wasmUrl - URL to the noah_prover.wasm file
+   * @param overrideWasmUrl - Optional URL to override the default
    */
-  async loadProver(wasmUrl: string = '/noah_prover.wasm'): Promise<void> {
+  async loadProver(overrideWasmUrl?: string): Promise<void> {
     if (this.wasmLoaded) return;
+    const targetUrl = overrideWasmUrl || this.wasmUrl;
 
     try {
       // 1. Try to load from IndexedDB cache
@@ -53,8 +68,8 @@ export class ProofGenerator {
         this.wasmBinary = cached;
       } else {
         // 2. Download from URL
-        const response = await fetch(wasmUrl);
-        if (!response.ok) throw new Error(`Failed to fetch WASM from ${wasmUrl}`);
+        const response = await fetch(targetUrl);
+        if (!response.ok) throw new Error(`Failed to fetch WASM from ${targetUrl}`);
         this.wasmBinary = await response.arrayBuffer();
 
         // 3. Cache for next time
@@ -62,8 +77,11 @@ export class ProofGenerator {
       }
 
       this.wasmLoaded = true;
-    } catch (error: any) {
-      throw new Error(`Failed to load prover: ${error.message}`);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        throw new Error(`Failed to load prover: ${error.message}`);
+      }
+      throw new Error(`Failed to load prover: ${String(error)}`);
     }
   }
 
@@ -76,39 +94,38 @@ export class ProofGenerator {
       await this.loadProver();
     }
 
-    // This is a simulation/placeholder for the Go-WASM bridge call
-    // In a real implementation, you would use:
-    // const go = new Go();
-    // const result = await WebAssembly.instantiate(this.wasmBinary, go.importObject);
-    // go.run(result.instance);
-    // const proofResult = globalThis.generateNoahProof(JSON.stringify(input));
+    if (typeof (globalThis as any).generateNoahProof !== 'function') {
+      throw new Error('Noah WASM prover not loaded in global scope. Ensure the WASM environment is initialized.');
+    }
 
     console.log('Generating proof locally with input:', input);
 
-    // Simulate some work
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    // Simplified deterministic nullifier for simulation
-    const passportNum = input.passportNumber || '0';
-    let hash = 0;
-    for (let i = 0; i < passportNum.length; i++) {
-      const char = passportNum.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash;
+    try {
+      const proofJson = await (globalThis as any).generateNoahProof(JSON.stringify(input));
+      if (!proofJson) throw new Error('Received empty proof from WASM prover.');
+      
+      const parsed = JSON.parse(proofJson);
+      
+      return {
+        proof: parsed.proof as ZKProof,
+        publicSignals: parsed.publicSignals || [],
+        nullifier: parsed.nullifier || '',
+        packedFlags: parsed.packedFlags || 0,
+        success: true
+      };
+    } catch (error: unknown) {
+      let msg = 'Unknown error during proof generation';
+      if (error instanceof Error) msg = error.message;
+      console.error(msg);
+      
+      return {
+        proof: { a: ["0", "0"], b: [["0", "0"], ["0", "0"]], c: ["0", "0"] } as ZKProof,
+        publicSignals: [],
+        nullifier: '',
+        packedFlags: 0,
+        success: false
+      };
     }
-    const deterministicNullifier = "0x" + Math.abs(hash).toString(16).padStart(64, '0');
-
-    return {
-      proof: {
-        a: ["0", "0"],
-        b: [["0", "0"], ["0", "0"]],
-        c: ["0", "0"]
-      } as ZKProof,
-      publicSignals: [], // This would be populated by the WASM
-      nullifier: deterministicNullifier,
-      packedFlags: 15, // All checks pass
-      success: true
-    };
   }
 
   private async getCachedWasm(): Promise<ArrayBuffer | null> {

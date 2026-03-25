@@ -32,10 +32,15 @@ export const IdentityVerification: React.FC<IdentityVerificationProps> = ({
     const [sdk, setSdk] = useState<NoahSDK | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [fileName, setFileName] = useState<string | null>(null);
+    const [backFileName, setBackFileName] = useState<string | null>(null);
+    const [docType, setDocType] = useState<'passport' | 'idcard'>('passport');
+    const [frontFile, setFrontFile] = useState<File | null>(null);
+    const [backFile, setBackFile] = useState<File | null>(null);
     const [extractedData, setExtractedData] = useState<any>(null);
     const [txHash, setTxHash] = useState<string | null>(null);
     const [isAlreadyVerified, setIsAlreadyVerified] = useState<boolean>(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const backFileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         if (window.ethereum) {
@@ -82,7 +87,7 @@ export const IdentityVerification: React.FC<IdentityVerificationProps> = ({
         { key: 'verified', label: 'Verified', icon: <CheckCircle2 size={18} /> },
     ];
 
-    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handlePassportChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file && sdk) {
             setFileName(file.name);
@@ -98,6 +103,38 @@ export const IdentityVerification: React.FC<IdentityVerificationProps> = ({
             } finally {
                 setIsProcessing(false);
             }
+        }
+    };
+
+    const handleFrontIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setFileName(file.name);
+            setFrontFile(file);
+        }
+    };
+
+    const handleBackIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setBackFileName(file.name);
+            setBackFile(file);
+        }
+    };
+
+    const processIdCard = async () => {
+        if (!frontFile || !backFile || !sdk) return;
+        setIsProcessing(true);
+        setError(null);
+        try {
+            const data = await sdk.extractDualSideData(frontFile, backFile);
+            console.log("Extracted Data:", data);
+            setExtractedData(data);
+            setCurrentStep('witness');
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to extract data');
+        } finally {
+            setIsProcessing(false);
         }
     };
 
@@ -192,7 +229,14 @@ export const IdentityVerification: React.FC<IdentityVerificationProps> = ({
                         <input
                             type="file"
                             ref={fileInputRef}
-                            onChange={handleFileChange}
+                            onChange={docType === 'passport' ? handlePassportChange : handleFrontIdChange}
+                            style={{ display: 'none' }}
+                            accept="image/*"
+                        />
+                        <input
+                            type="file"
+                            ref={backFileInputRef}
+                            onChange={handleBackIdChange}
                             style={{ display: 'none' }}
                             accept="image/*"
                         />
@@ -213,26 +257,57 @@ export const IdentityVerification: React.FC<IdentityVerificationProps> = ({
                                 </p>
                             </div>
                         ) : (
-                            <div className="glass" style={{
-                                padding: '3rem',
-                                border: '2px dashed var(--border)',
-                                borderRadius: '1.5rem',
-                                marginBottom: '2rem',
-                                cursor: isProcessing ? 'default' : 'pointer',
-                                opacity: isProcessing ? 0.7 : 1,
-                                transition: 'all 0.2s ease'
-                            }} onClick={() => !isProcessing && fileInputRef.current?.click()}>
-                                {isProcessing ? (
-                                    <Loader2 size={48} className="animate-spin" style={{ color: 'var(--primary)', marginBottom: '1rem' }} />
+                            <div>
+                                <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
+                                    <button 
+                                        className={`btn ${docType === 'passport' ? 'btn-primary' : 'btn-outline'}`}
+                                        onClick={() => setDocType('passport')}
+                                        disabled={isProcessing}
+                                    >Passport</button>
+                                    <button 
+                                        className={`btn ${docType === 'idcard' ? 'btn-primary' : 'btn-outline'}`}
+                                        onClick={() => setDocType('idcard')}
+                                        disabled={isProcessing}
+                                    >ID Card / Driver's License</button>
+                                </div>
+                                {docType === 'passport' ? (
+                                    <div className="glass" style={{
+                                        padding: '3rem', border: '2px dashed var(--border)', borderRadius: '1.5rem',
+                                        marginBottom: '2rem', cursor: isProcessing ? 'default' : 'pointer',
+                                        opacity: isProcessing ? 0.7 : 1, transition: 'all 0.2s ease'
+                                    }} onClick={() => !isProcessing && fileInputRef.current?.click()}>
+                                        {isProcessing ? <Loader2 size={48} className="animate-spin" style={{ color: 'var(--primary)', marginBottom: '1rem' }} /> : <Upload size={48} style={{ color: 'var(--primary)', marginBottom: '1rem' }} />}
+                                        <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.5rem' }}>{isProcessing ? 'Processing Image...' : 'Upload Passport Photo'}</h3>
+                                        <p style={{ color: 'var(--text-dim)' }}>{isProcessing ? 'Extracting MRZ data...' : 'Click to select or drag & drop'}</p>
+                                    </div>
                                 ) : (
-                                    <Upload size={48} style={{ color: 'var(--primary)', marginBottom: '1rem' }} />
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
+                                        <div style={{ display: 'flex', gap: '1rem' }}>
+                                            <div className="glass" style={{
+                                                flex: 1, padding: '2rem', border: '2px dashed var(--border)', borderRadius: '1.5rem',
+                                                cursor: isProcessing ? 'default' : 'pointer', transition: 'all 0.2s ease', 
+                                                borderColor: frontFile ? 'var(--primary)' : 'var(--border)'
+                                            }} onClick={() => !isProcessing && fileInputRef.current?.click()}>
+                                                <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '0.5rem' }}>Front Image</h3>
+                                                <p style={{ color: 'var(--text-dim)', fontSize: '0.8rem' }}>{frontFile ? frontFile.name : 'Upload Front'}</p>
+                                            </div>
+                                            <div className="glass" style={{
+                                                flex: 1, padding: '2rem', border: '2px dashed var(--border)', borderRadius: '1.5rem',
+                                                cursor: isProcessing ? 'default' : 'pointer', transition: 'all 0.2s ease', 
+                                                borderColor: backFile ? 'var(--primary)' : 'var(--border)'
+                                            }} onClick={() => !isProcessing && backFileInputRef.current?.click()}>
+                                                <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '0.5rem' }}>Back Image (MRZ)</h3>
+                                                <p style={{ color: 'var(--text-dim)', fontSize: '0.8rem' }}>{backFile ? backFile.name : 'Upload Back'}</p>
+                                            </div>
+                                        </div>
+                                        {frontFile && backFile && (
+                                            <button className="btn btn-primary" onClick={processIdCard} disabled={isProcessing}>
+                                                {isProcessing ? <Loader2 className="animate-spin" style={{ marginRight: '0.5rem', display: 'inline' }} /> : null}
+                                                {isProcessing ? 'Processing ID...' : 'Extract Data & Continue'}
+                                            </button>
+                                        )}
+                                    </div>
                                 )}
-                                <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.5rem' }}>
-                                    {isProcessing ? 'Processing Image...' : 'Upload Passport Photo'}
-                                </h3>
-                                <p style={{ color: 'var(--text-dim)' }}>
-                                    {isProcessing ? 'Extracting MRZ data...' : 'Click to select or drag & drop'}
-                                </p>
                             </div>
                         )}
                     </div>

@@ -1,6 +1,9 @@
-package main
+//go:build js && wasm
 
+package main
 import (
+	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"syscall/js"
@@ -80,14 +83,21 @@ func generateNoahProof(this js.Value, args []js.Value) interface{} {
 		return fmt.Sprintf("Error proving: %v", err)
 	}
 
-	// 5. Extraction (Stub for demo)
-	fmt.Printf("Generated proof: %v\n", proof)
+	// 5. Extraction (Replacing stubs with real serialization)
+	var proofBuf bytes.Buffer
+	_, err = proof.WriteRawTo(&proofBuf)
+	if err != nil {
+		return fmt.Sprintf("Error serializing proof: %v", err)
+	}
+	proofHex := hex.EncodeToString(proofBuf.Bytes())
 
+	// Nullifier is generated in circuit, but typically returned via public witness or native eval
+	// We'll return the proof hex which contains the raw Groth16 points
 	return map[string]interface{}{
 		"status":      "success",
-		"message":     "Proof generated",
-		"proof":       "proof_hex_placeholder",
-		"nullifier":   "nullifier_hex_placeholder",
+		"message":     "Proof generated successfully",
+		"proof":       proofHex,
+		"nullifier":   inputMap["passportNumber"], // Placeholder fallback unless native eval
 		"packedFlags": 15,
 	}
 }
