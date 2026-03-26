@@ -319,30 +319,40 @@ export const IdentityVerification: React.FC<IdentityVerificationProps> = ({
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', textAlign: 'left', background: 'rgba(0,0,0,0.2)', padding: '1.5rem', borderRadius: '0.5rem' }}>
                                 <div style={{ gridColumn: 'span 2', marginBottom: '0.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
                                     <p style={{ fontSize: '0.875rem', color: 'var(--text-dim)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                        <FileText size={16} className="text-primary" /> MRZ Data Extracted {fileName && `from ${fileName}`}
+                                        <FileText size={16} className="text-primary" /> MRZ Data Extracted · {docType === 'passport' ? 'Passport' : 'National ID / Driver\'s License'}
                                     </p>
                                 </div>
                                 <div>
                                     <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>First Name</p>
-                                    <p style={{ fontWeight: 600 }}>{extractedData?.firstName || 'JONATHAN'}</p>
+                                    <p style={{ fontWeight: 600 }}>{extractedData?.firstName || '—'}</p>
                                 </div>
                                 <div>
                                     <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Last Name</p>
-                                    <p style={{ fontWeight: 600 }}>{extractedData?.lastName || 'DUNN'}</p>
+                                    <p style={{ fontWeight: 600 }}>{extractedData?.surname || '—'}</p>
                                 </div>
                                 <div>
-                                    <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Passport No.</p>
-                                    <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.9rem' }}>{extractedData?.passportNumber || 'A20138271'}</p>
+                                    <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>{docType === 'passport' ? 'Passport No.' : 'Document No.'}</p>
+                                    <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.9rem' }}>{extractedData?.documentNumber || '—'}</p>
                                 </div>
                                 <div>
                                     <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Nationality</p>
-                                    <p style={{ fontWeight: 600 }}>{extractedData?.nationality || 'USA'}</p>
+                                    <p style={{ fontWeight: 600 }}>{extractedData?.nationality || '—'}</p>
                                 </div>
-                                <div style={{ gridColumn: 'span 2', marginTop: '0.5rem' }}>
-                                    <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Raw MRZ</p>
-                                    <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.65rem', wordBreak: 'break-all', opacity: 0.8 }}>
-                                        P&lt;{extractedData?.issuingState || 'USA'}{extractedData?.lastName || 'DUNN'}&lt;&lt;{extractedData?.firstName || 'JONATHAN'}&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;
-                                    </p>
+                                <div>
+                                    <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Date of Birth</p>
+                                    <p style={{ fontWeight: 600 }}>{extractedData?.dob || '—'}</p>
+                                </div>
+                                <div>
+                                    <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Gender</p>
+                                    <p style={{ fontWeight: 600 }}>{extractedData?.gender || '—'}</p>
+                                </div>
+                                <div>
+                                    <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Expiry</p>
+                                    <p style={{ fontWeight: 600 }}>{extractedData?.expiry || '—'}</p>
+                                </div>
+                                <div>
+                                    <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Issuer</p>
+                                    <p style={{ fontWeight: 600 }}>{extractedData?.issuer || '—'}</p>
                                 </div>
                             </div>
                         </div>

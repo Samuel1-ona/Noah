@@ -44,16 +44,9 @@ export class NoahSDK {
      * Extract identity data from any ICAO 9303 document (Passport, ID Card)
      */
     public async extractICAOData(image: File | string | Blob): Promise<MRZResult> {
-        const { mrzLines } = await this.ocrExtractor.extractMRZ(image);
-
-        if (mrzLines.length < 2) {
-            throw new NoahValidationError('Could not detect MRZ lines in the image.');
-        }
-
-        const fullMRZ = mrzLines.join('');
-
+        const { rawText } = await this.ocrExtractor.extractMRZ(image);
         try {
-            return ICAOParser.parse(fullMRZ);
+            return ICAOParser.parse(rawText);
         } catch (error) {
             throw new NoahValidationError(`Failed to parse MRZ: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
@@ -67,21 +60,24 @@ export class NoahSDK {
     }
 
     /**
-     * Extract identity data from a dual-sided document (National ID, Driver's License)
+     * Extract identity data from a dual-sided document (National ID, Driver's License).
+     * The MRZ is ONLY on the back of the card — we parse that exclusively.
      */
     public async extractDualSideData(frontImage: File | string | Blob, backImage: File | string | Blob): Promise<MRZResult> {
-        const { mrzLines } = await this.ocrExtractor.extractDualMRZ(frontImage, backImage);
+        const { rawText } = await this.ocrExtractor.extractMRZ(backImage);
 
-        if (mrzLines.length < 2) {
-            throw new NoahValidationError('Could not detect MRZ lines in the uploaded images. Please ensure the back of the ID is clearly visible.');
-        }
-
-        const fullMRZ = mrzLines.join('');
+        // DEBUG: Developer logging to see raw OCR string
+        const cleanDebug = rawText.replace(/[^A-Z0-9<]/gi, '').toUpperCase();
+        console.log('[Noah SDK] Raw OCR text (back):', JSON.stringify(rawText));
+        console.log('[Noah SDK] Cleaned MRZ string:', cleanDebug);
 
         try {
-            return ICAOParser.parse(fullMRZ);
+            return ICAOParser.parse(rawText);
         } catch (error) {
-            throw new NoahValidationError(`Failed to parse MRZ from ID card: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            throw new NoahValidationError(
+                `Failed to parse MRZ from ID card: ${error instanceof Error ? error.message : 'Unknown error'}. ` +
+                `Please ensure the back of the card is flat, well-lit, and clearly visible.`
+            );
         }
     }
 
